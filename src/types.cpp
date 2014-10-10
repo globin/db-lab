@@ -1,4 +1,4 @@
-#include "Types.hpp"
+#include "types.hpp"
 //---------------------------------------------------------------------------
 #include <ctime>
 //---------------------------------------------------------------------------
@@ -14,7 +14,7 @@ std::ostream &operator<<(std::ostream &out, const Integer &value) {
 }
 
 //---------------------------------------------------------------------------
-Integer Integer::castString(const char *str, uint32_t strLen)
+Integer Integer::castString(const char *str, size_t strLen)
 // Cast a string to an integer value
 {
     auto iter = str, limit = str + strLen;
@@ -118,7 +118,7 @@ std::ostream &operator<<(std::ostream &out, const Date &value)
 }
 
 //---------------------------------------------------------------------------
-Date Date::castString(const char *str, uint32_t strLen)
+Date Date::castString(const char *str, size_t strLen)
 // Cast a string to a date
 {
     auto iter = str, limit = str + strLen;
@@ -166,7 +166,7 @@ Date Date::castString(const char *str, uint32_t strLen)
 }
 
 //---------------------------------------------------------------------------
-Timestamp Timestamp::castString(const char *str, uint32_t strLen)
+Timestamp Timestamp::castString(const char *str, size_t strLen)
 // Cast a string to a timestamp value
 {
     if ((strLen == 4) && (strncmp(str, "NULL", 4) == 0))

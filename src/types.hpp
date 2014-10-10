@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #ifndef H_Types
 #define H_Types
 //---------------------------------------------------------------------------
@@ -5,6 +7,8 @@
 #include <cstring>
 #include <ostream>
 #include <cassert>
+#include <memory>
+#include <algorithm>
 
 //---------------------------------------------------------------------------
 // HyPer
@@ -35,7 +39,7 @@ struct LengthIndicator {
 
 //---------------------------------------------------------------------------
 /// Integer class
-class Integer {
+class Integer : public std::allocator_arg_t {
 public:
     int32_t value;
 
@@ -106,7 +110,7 @@ public:
     }
 
     /// Cast
-    static Integer castString(const char *str, uint32_t strLen);
+    static Integer castString(const char *str, size_t strLen);
 };
 
 //---------------------------------------------------------------------------
@@ -178,7 +182,7 @@ public:
     }
 
     ///Cast
-    static Varchar<maxLen> castString(const char *str, uint32_t strLen) {
+    static Varchar<maxLen> castString(const char *str, size_t strLen) {
         assert(strLen <= maxLen);
         Varchar<maxLen> result;
         result.len = strLen;
@@ -203,7 +207,7 @@ template<unsigned maxLen>
 bool Varchar<maxLen>::operator<(const Varchar &other) const
 // Comparison
 {
-    int c = memcmp(value, other.value, min(len, other.len));
+    int c = memcmp(value, other.value, std::min(len, other.len));
     if (c < 0) return true;
     if (c > 0) return false;
     return len < other.len;
@@ -287,7 +291,7 @@ public:
     }
 
     /// Cast
-    static Char<maxLen> castString(const char *str, uint32_t strLen) {
+    static Char<maxLen> castString(const char *str, size_t strLen) {
         while ((*str) == ' ') {
             str++;
             strLen--;
@@ -316,7 +320,7 @@ template<unsigned maxLen>
 bool Char<maxLen>::operator<(const Char &other) const
 // Comparison
 {
-    int c = memcmp(value, other.value, min(len, other.len));
+    int c = memcmp(value, other.value, std::min(len, other.len));
     if (c < 0) return true;
     if (c > 0) return false;
     return len < other.len;
@@ -327,7 +331,7 @@ template<unsigned maxLen>
 bool Char<maxLen>::operator>(const Char &other) const
 // Comparison
 {
-    int c = memcmp(value, other.value, min(len, other.len));
+    int c = memcmp(value, other.value, std::min(len, other.len));
     if (c < 0) return false;
     if (c > 0) return true;
     return len > other.len;
@@ -347,7 +351,7 @@ public:
 
     /// The length
     unsigned length() const {
-        return value != ' ';
+        return (unsigned)(value != ' ');
     }
 
     /// The first character
@@ -392,7 +396,7 @@ public:
         return result;
     }
 
-    static Char<1> castString(const char *str, uint32_t strLen) {
+    static Char<1> castString(const char *str, size_t strLen) {
         Char<1> x;
         x.value = str[0];
         return x;
@@ -401,10 +405,10 @@ public:
 
 //---------------------------------------------------------------------------
 uint64_t Char<1>::hash() const {
-    uint64_t r = 88172645463325252ull ^value;
+    uint64_t r = 88172645463325252ull ^ value;
     r ^= (r << 13);
     r ^= (r >> 7);
-    return (r ^= (r << 17));
+    return (r ^ (r << 17));
 }
 
 //---------------------------------------------------------------------------
@@ -504,7 +508,7 @@ public:
 
     /// Div
     Numeric<len, precision> operator/(const Integer &n) const {
-        Numeric r;
+        Numeric<len, precision> r;
         r.value = value / n.value;
         return r;
     }
@@ -512,7 +516,7 @@ public:
     /// Div
     template<unsigned l>
     Numeric<len, precision> operator/(const Numeric<l, 0> &n) const {
-        Numeric r;
+        Numeric<len, precision> r;
         r.value = value / n.value;
         return r;
     }
@@ -520,7 +524,7 @@ public:
     /// Div
     template<unsigned l>
     Numeric<len, precision> operator/(const Numeric<l, 1> &n) const {
-        Numeric r;
+        Numeric<len, precision> r;
         r.value = value * 10 / n.value;
         return r;
     }
@@ -528,7 +532,7 @@ public:
     /// Div
     template<unsigned l>
     Numeric<len, precision> operator/(const Numeric<l, 2> &n) const {
-        Numeric r;
+        Numeric<len, precision> r;
         r.value = value * 100 / n.value;
         return r;
     }
@@ -536,7 +540,7 @@ public:
     /// Div
     template<unsigned l>
     Numeric<len, precision> operator/(const Numeric<l, 4> &n) const {
-        Numeric r;
+        Numeric<len, precision> r;
         r.value = value * 10000 / n.value;
         return r;
     }
@@ -596,13 +600,13 @@ public:
 
     /// Build a number
     static Numeric<len, precision> buildRaw(long v) {
-        Numeric r;
+        Numeric<len, precision> r;
         r.value = v;
         return r;
     }
 
     /// Cast
-    static Numeric<len, precision> castString(const char *str, uint32_t strLen) {
+    static Numeric<len, precision> castString(const char *str, size_t strLen) {
         auto iter = str, limit = str + strLen;
 
         // Trim WS
@@ -668,7 +672,7 @@ uint64_t Numeric<len, precision>::hash() const
     uint64_t r = 88172645463325252ull ^value;
     r ^= (r << 13);
     r ^= (r >> 7);
-    return (r ^= (r << 17));
+    return (r ^ (r << 17));
 }
 
 //---------------------------------------------------------------------------
@@ -750,7 +754,7 @@ public:
     }
 
     /// Cast
-    static Date castString(const char *str, uint32_t strLen);
+    static Date castString(const char *str, size_t strLen);
 };
 
 //---------------------------------------------------------------------------
@@ -777,7 +781,7 @@ public:
     static Timestamp null();
 
     /// The value
-    unsigned getRaw() const {
+    uint64_t getRaw() const {
         return value;
     }
 
@@ -805,7 +809,7 @@ public:
     }
 
     /// Cast
-    static Timestamp castString(const char *str, uint32_t strLen);
+    static Timestamp castString(const char *str, size_t strLen);
 };
 
 //---------------------------------------------------------------------------
@@ -818,7 +822,7 @@ uint64_t Integer::hash() const
     uint64_t r = 88172645463325252ull ^value;
     r ^= (r << 13);
     r ^= (r >> 7);
-    return (r ^= (r << 17));
+    return (r ^ (r << 17));
 }
 
 //---------------------------------------------------------------------------
@@ -828,7 +832,7 @@ uint64_t Date::hash() const
     uint64_t r = 88172645463325252ull ^value;
     r ^= (r << 13);
     r ^= (r >> 7);
-    return (r ^= (r << 17));
+    return (r ^ (r << 17));
 }
 
 //---------------------------------------------------------------------------
@@ -838,7 +842,7 @@ uint64_t Timestamp::hash() const
     uint64_t r = 88172645463325252ull ^value;
     r ^= (r << 13);
     r ^= (r >> 7);
-    return (r ^= (r << 17));
+    return (r ^ (r << 17));
 }
 
 //---------------------------------------------------------------------------
@@ -854,3 +858,5 @@ inline uint64_t hashKey(T first, Args... args) {
 }
 //---------------------------------------------------------------------------
 #endif
+
+#pragma clang diagnostic pop
