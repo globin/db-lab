@@ -1,1 +1,6 @@
-*.tbl
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+db-lab
+
