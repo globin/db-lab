@@ -163,14 +163,25 @@ void read_file_to_table(char const *file_name, Table<T, Index> &table) {
 }
 
 void read_tables() {
-    read_file_to_table<Warehouse>("data/tpcc_warehouse.tbl", WAREHOUSE_TABLE);
-    read_file_to_table<Customer>("data/tpcc_customer.tbl", CUSTOMER_TABLE);
-    read_file_to_table<District>("data/tpcc_district.tbl", DISTRICT_TABLE);
-    read_file_to_table<Item>("data/tpcc_item.tbl", ITEM_TABLE);
-    read_file_to_table<Neworder>("data/tpcc_neworder.tbl", NEWORDER_TABLE);
-    read_file_to_table<Order>("data/tpcc_order.tbl", ORDER_TABLE);
-    read_file_to_table<Orderline>("data/tpcc_orderline.tbl", ORDERLINE_TABLE);
-    read_file_to_table<Stock>("data/tpcc_stock.tbl", STOCK_TABLE);
+    read_file_to_table<Warehouse>("../data/tpcc_warehouse.tbl", WAREHOUSE_TABLE);
+    read_file_to_table<Customer>("../data/tpcc_customer.tbl", CUSTOMER_TABLE);
+    read_file_to_table<District>("../data/tpcc_district.tbl", DISTRICT_TABLE);
+    read_file_to_table<Item>("../data/tpcc_item.tbl", ITEM_TABLE);
+    read_file_to_table<Neworder>("../data/tpcc_neworder.tbl", NEWORDER_TABLE);
+    read_file_to_table<Order>("../data/tpcc_order.tbl", ORDER_TABLE);
+    read_file_to_table<Orderline>("../data/tpcc_orderline.tbl", ORDERLINE_TABLE);
+    read_file_to_table<Stock>("../data/tpcc_stock.tbl", STOCK_TABLE);
+}
+void print_sizes() {
+    cout << endl;
+    cout << "Warehouse: " << WAREHOUSE_TABLE.size() << endl;
+    cout << "Customer: " << CUSTOMER_TABLE.size() << endl;
+    cout << "District: " << DISTRICT_TABLE.size() << endl;
+    cout << "Item: " << ITEM_TABLE.size() << endl;
+    cout << "Neworder: " << NEWORDER_TABLE.size() << endl;
+    cout << "Order: " << ORDER_TABLE.size() << endl;
+    cout << "Orderline: " << ORDERLINE_TABLE.size() << endl;
+    cout << "Stock: " << STOCK_TABLE.size() << endl;
 }
 
 int main(int argc, char const *argv[]) {
@@ -179,11 +190,13 @@ int main(int argc, char const *argv[]) {
     read_tables();
     cout << "read tables " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() << "s" << endl;
 
+    print_sizes();
     start = chrono::high_resolution_clock::now();
     for (int i = 0; i < 1000000; i++) {
         newOrderRandom(time(0), urand(1, warehouses));
     }
     cout << "1000000 iterations " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() << "s" << endl;
+    print_sizes();
 
     return 0;
 }
