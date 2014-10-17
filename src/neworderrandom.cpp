@@ -42,11 +42,11 @@ int32_t nurand(int32_t A, int32_t x, int32_t y) {
 void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t *supware,
         int32_t *itemid, int32_t *qty, uint64_t now) {
 
-    auto w_tax = WAREHOUSE_TABLE.lookup(w_id).w_tax;
+    auto w_tax = WAREHOUSE_TABLE.lookup(Integer(w_id)).w_tax;
     auto c_discount = CUSTOMER_TABLE.lookup(
-            tuple<int32_t, int32_t, int32_t>(w_id, d_id, c_id)
+            tuple<Integer, Integer, Integer>(Integer(w_id), Integer(d_id), Integer(c_id))
     ).c_discount;
-    auto district = DISTRICT_TABLE.lookup(tuple<int32_t, int32_t>(d_id, w_id));
+    auto district = DISTRICT_TABLE.lookup(tuple<Integer, Integer>(Integer(d_id), Integer(w_id)));
     auto o_id = district.d_next_o_id;
     auto d_tax = district.d_tax;
 
@@ -57,65 +57,54 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
         if (w_id != supware[i]) all_local=0;
     }
 
-    ORDER_TABLE.insert(Order(o_id, d_id, w_id, c_id, now, 0, ol_cnt, all_local));
-    NEWORDER_TABLE.insert(Neworder(o_id, d_id, w_id));
+    ORDER_TABLE.insert(Order(o_id.value, d_id, w_id, c_id, now, 0, ol_cnt, all_local));
+    NEWORDER_TABLE.insert(Neworder(o_id.value, d_id, w_id));
 
     for (int i = 0; i < ol_cnt; i++) {
-        auto i_price = ITEM_TABLE.lookup(itemid[i]).i_price;
-        auto stock = STOCK_TABLE.lookup(tuple<int32_t, int32_t>(supware[i], itemid[i]));
+        auto i_price = ITEM_TABLE.lookup(Integer(itemid[i])).i_price;
+        auto stock = STOCK_TABLE.lookup(tuple<Integer, Integer>(Integer(supware[i]), Integer(itemid[i])));
         auto s_quantity = stock.s_quantity;
         auto s_remote_cnt = stock.s_remote_cnt;
         auto s_order_cnt = stock.s_order_cnt;
-        char s_dist[24];
+        Char<24> s_dist;
         switch (d_id) {
             case 1:
-                memcpy(s_dist, stock.s_dist_01, 24);
-                break;
+                s_dist = stock.s_dist_01; break;
             case 2:
-                memcpy(s_dist, stock.s_dist_02, 24);
-                break;
+                s_dist = stock.s_dist_02; break;
             case 3:
-                memcpy(s_dist, stock.s_dist_03, 24);
-                break;
+                s_dist = stock.s_dist_03; break;
             case 4:
-                memcpy(s_dist, stock.s_dist_04, 24);
-                break;
+                s_dist = stock.s_dist_04; break;
             case 5:
-                memcpy(s_dist, stock.s_dist_05, 24);
-                break;
+                s_dist = stock.s_dist_05; break;
             case 6:
-                memcpy(s_dist, stock.s_dist_06, 24);
-                break;
+                s_dist = stock.s_dist_06; break;
             case 7:
-                memcpy(s_dist, stock.s_dist_07, 24);
-                break;
+                s_dist = stock.s_dist_07; break;
             case 8:
-                memcpy(s_dist, stock.s_dist_08, 24);
-                break;
+                s_dist = stock.s_dist_08; break;
             case 9:
-                memcpy(s_dist, stock.s_dist_09, 24);
-                break;
+                s_dist = stock.s_dist_09; break;
             case 10:
-                memcpy(s_dist, stock.s_dist_10, 24);
-                break;
-            default:
-                break;
+                s_dist = stock.s_dist_10; break;
+            default:break;
         }
 
         if (s_quantity > qty[i]) {
-            stock.s_quantity -= qty[i];
+            stock.s_quantity.value -= qty[i];
         } else {
-            stock.s_quantity += 91 - qty[i];
+            stock.s_quantity.value += 91 - qty[i];
         }
 
         if (supware[i] != w_id) {
-            stock.s_remote_cnt += s_remote_cnt;
+            stock.s_remote_cnt.value += s_remote_cnt.value;
         } else {
-            stock.s_order_cnt = s_order_cnt + 1;
+            stock.s_order_cnt.value = s_order_cnt.value + 1;
         }
 
-        int64_t ol_amount = qty[i] * i_price * (1 + w_tax + d_tax) * (1 - c_discount);
-        ORDERLINE_TABLE.insert(Orderline(o_id, d_id, w_id, i + 1, itemid[i], supware[i], 0, qty[i], ol_amount, s_dist));
+        auto ol_amount = qty[i] * i_price.value * (1.0 + w_tax.value + d_tax.value) * (1.0 - c_discount.value);
+        ORDERLINE_TABLE.insert(Orderline(o_id.value, d_id, w_id, i + 1, itemid[i], supware[i], 0, qty[i], ol_amount, s_dist.value));
     }
 }
 
