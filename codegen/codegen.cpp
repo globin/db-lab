@@ -48,7 +48,7 @@ string &eat_whitespace(string &s) {
 
 Type parse_type(string &type_str) {
     size_t delim_pos;
-    if ((delim_pos = type_str.find('(')) != -1) {
+    if ((delim_pos = type_str.find('(')) != string::npos) {
         string type = type_str.substr(0, delim_pos);
         type_str.erase(0, delim_pos + 1);
         string type_parameters = type_str.substr(0, type_str.find(')'));
@@ -63,7 +63,7 @@ void parse_create_table(string &line) {
     string name = line.substr(0, line.find(' '));
 
     size_t quote_pos;
-    while ((quote_pos = name.find('"')) != -1) {
+    while ((quote_pos = name.find('"')) != string::npos) {
         name.erase(quote_pos, quote_pos + 1);
     }
 
@@ -113,6 +113,7 @@ string find_column_type(string col_name, Table &table) {
             return column.second.cpp_type_string();
         }
     }
+    return string();
 }
 
 void finalize_table(Table &table) {
@@ -120,7 +121,7 @@ void finalize_table(Table &table) {
         table.primary_key_type = find_column_type(table.primary_key[0], table);
     } else {
         string primary_key_type = "tuple<";
-        for (int i = 0; i < table.primary_key.size(); i++) {
+        for (size_t i = 0; i < table.primary_key.size(); i++) {
             if (i != 0) primary_key_type += ", ";
             primary_key_type += find_column_type(table.primary_key[i], table);
         }
@@ -178,17 +179,17 @@ void generate_column(ofstream &cpp_gen_tables, pair<string, Type> &column) {
 
 void generate_constructor(ofstream &cpp_gen_tables, Table &table) {
     cpp_gen_tables << "    " << table.name << "(" << endl;
-    for (int i = 0; i < table.columns.size(); i++) {
+    for (size_t i = 0; i < table.columns.size(); i++) {
         cpp_gen_tables << "        " << table.columns[i].second.cpp_type_string() << " " << table.columns[i].first;
-        if (i < table.columns.size() - 1) {
+        if (i + 1 < table.columns.size()) {
             cpp_gen_tables << ",";
         }
         cpp_gen_tables << endl;
     }
     cpp_gen_tables << "    ) : " << endl;
-    for (int i = 0; i < table.columns.size(); i++) {
+    for (size_t i = 0; i < table.columns.size(); i++) {
         cpp_gen_tables << "        " << table.columns[i].first << "(" << table.columns[i].first << ")";
-        if (i < table.columns.size() - 1) {
+        if (i + 1 < table.columns.size()) {
             cpp_gen_tables << ",";
         }
         cpp_gen_tables << endl;
@@ -199,10 +200,10 @@ void generate_constructor(ofstream &cpp_gen_tables, Table &table) {
 void generate_from_row(ofstream &cpp_gen_tables, Table &table) {
     cpp_gen_tables << "    static " << table.name << " from_row(vector<string> row) {" << endl;
     cpp_gen_tables << "        return " << table.name << "(" << endl;
-    for (int i = 0; i < table.columns.size(); i++) {
+    for (size_t i = 0; i < table.columns.size(); i++) {
         cpp_gen_tables << "            " << table.columns[i].second.cpp_type_string() <<
                 "::castString(row[" << i << "].c_str(), row[" << i << "].length())";
-        if (i < table.columns.size() - 1) {
+        if (i + 1 < table.columns.size()) {
             cpp_gen_tables << ',';
         }
         cpp_gen_tables << endl;
