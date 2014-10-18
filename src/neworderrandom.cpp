@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include "types.hpp"
-#include "tables.hpp"
+#include "tables_gen.hpp"
 
 using namespace std;
 using namespace chrono;
@@ -57,8 +57,9 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
         if (w_id != supware[i]) all_local=0;
     }
 
-    ORDER_TABLE.insert(Order(o_id.value, d_id, w_id, c_id, now, 0, ol_cnt, all_local));
-    NEWORDER_TABLE.insert(Neworder(o_id.value, d_id, w_id));
+    ORDER_TABLE.insert(Order(o_id, Integer(d_id), Integer(w_id), Integer(c_id), Timestamp(now), Integer(0),
+            Numeric<2, 0>(ol_cnt), Numeric<1, 0>(all_local)));
+    NEWORDER_TABLE.insert(Neworder(o_id, Integer(d_id), Integer(w_id)));
 
     for (int i = 0; i < ol_cnt; i++) {
         auto i_price = ITEM_TABLE.lookup(Integer(itemid[i])).i_price;
@@ -92,9 +93,9 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
         }
 
         if (s_quantity > qty[i]) {
-            stock.s_quantity.value -= qty[i];
+            stock.s_quantity -= Numeric<4, 0>(qty[i]);
         } else {
-            stock.s_quantity.value += 91 - qty[i];
+            stock.s_quantity += Numeric<4, 0>(91 - qty[i]);
         }
 
         if (supware[i] != w_id) {
@@ -103,8 +104,10 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
             stock.s_order_cnt.value = s_order_cnt.value + 1;
         }
 
-        auto ol_amount = qty[i] * i_price.value * (1.0 + w_tax.value + d_tax.value) * (1.0 - c_discount.value);
-        ORDERLINE_TABLE.insert(Orderline(o_id.value, d_id, w_id, i + 1, itemid[i], supware[i], 0, qty[i], ol_amount, s_dist.value));
+        auto ol_amount = qty[i] * i_price.value * (1.0 + w_tax.value + d_tax.value) * (1.0 - c_discount.value); // FIXME
+        ORDERLINE_TABLE.insert(
+                Orderline(o_id, Integer(d_id), Integer(w_id), Integer(i + 1), Integer(itemid[i]), Integer(supware[i]),
+                        Timestamp(0), Numeric<2, 0>(qty[i]), Numeric<6, 2>(ol_amount), s_dist));
     }
 }
 
@@ -141,7 +144,7 @@ void read_file_to_table(char const *file_name, Table<T, Index> &table) {
                 column_data.push_back(cell);
             }
 
-            T row = T(column_data);
+            T row = T::from_row(column_data);
 
             table.insert(row);
         }

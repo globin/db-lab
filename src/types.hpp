@@ -1,7 +1,7 @@
+#pragma once
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
-#ifndef H_Types
-#define H_Types
 //---------------------------------------------------------------------------
 #include <cstdint>
 #include <cstring>
@@ -506,6 +506,12 @@ public:
         return r;
     }
 
+    /// Sub
+    Numeric &operator-=(const Numeric<len, precision> &n) {
+        value -= n.value;
+        return *this;
+    }
+
     /// Div
     Numeric<len, precision> operator/(const Integer &n) const {
         Numeric<len, precision> r;
@@ -857,6 +863,3 @@ inline uint64_t hashKey(T first, Args... args) {
     return first.hash() ^ hashKey(args...);
 }
 //---------------------------------------------------------------------------
-#endif
-
-#pragma clang diagnostic pop
