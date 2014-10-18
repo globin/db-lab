@@ -13,3 +13,12 @@ set(SOURCE_FILES
     src/types.cpp)
 
 add_executable(db-lab ${SOURCE_FILES})
+
+add_custom_target(codegen
+  COMMAND db-lab-codegen
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "genereate code in ${CMAKE_CURRENT_SOURCE_DIR}"
+  SOURCES ${CODEGEN_SOURCE_FILES}
+)
+
+add_dependencies(db-lab codegen)
