@@ -7,47 +7,51 @@
 #include <string.h>
 
 /**
- * Types
- */
+* Types
+*/
 namespace Types {
-   enum class Tag : unsigned {Integer, Char};
+    enum class Tag : unsigned {
+        Integer, Char
+    };
 }
 
 
 /**
- * Integer
- */
+* Integer
+*/
 typedef int Integer;
 
 
 /**
- * Char
- */
-template <unsigned len>
+* Char
+*/
+template<unsigned len>
 struct Char {
-   char data[len];
-   void loadString(const std::string& str);
-   std::string toString();
+    char data[len];
+
+    void loadString(const std::string &str);
+
+    std::string toString();
 };
 
-template <unsigned len>
-void Char<len>::loadString(const std::string& str) {
-   if (str.size() >= len) {
-      memcpy(data, str.c_str(), len);
-   } else {
-      memset(data, ' ', len);
-      memcpy(data, str.c_str(), str.size());
-   }
+template<unsigned len>
+void Char<len>::loadString(const std::string &str) {
+    if (str.size() >= len) {
+        memcpy(data, str.c_str(), len);
+    } else {
+        memset(data, ' ', len);
+        memcpy(data, str.c_str(), str.size());
+    }
 }
 
-template <unsigned len>
+template<unsigned len>
 std::string Char<len>::toString() {
-   return std::string(data, data+len);
+    return std::string(data, data + len);
 }
 
 /**
- * Numeric
- */
+* Numeric
+*/
 /*template <unsigned len1, unsigned len2>
 struct Numeric {
    uint64_t data;
