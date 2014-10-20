@@ -27,7 +27,12 @@ struct Parser {
     std::string fileName;
     std::ifstream in;
     enum class State : unsigned {
-        Init, Create, Table, CreateTableBegin, CreateTableEnd, TableName, Primary, Key, KeyListBegin, KeyName, KeyListEnd, AttributeName, AttributeTypeInt, AttributeTypeChar, CharBegin, CharValue, CharEnd, AttributeTypeNumeric, NumericBegin, NumericValue1, NumericSeparator, NumericValue2, NumericEnd, Not, Null, Separator, Semicolon
+        Init, Create, Table, CreateTableBegin, CreateTableEnd, TableName, Primary,
+        Key, KeyListBegin, KeyName, KeyListEnd, AttributeName, AttributeTypeInt,
+        AttributeTypeChar, CharBegin, CharValue, CharEnd,
+        AttributeTypeVarchar, VarcharBegin, VarcharValue, VarcharEnd,
+        AttributeTypeNumeric, NumericBegin, NumericValue1, NumericSeparator, NumericValue2, NumericEnd,
+        Not, Null, Separator, Semicolon
     };
     State state;
 

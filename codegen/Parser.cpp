@@ -14,6 +14,7 @@ namespace keyword {
     const std::string Not = "not";
     const std::string Null = "null";
     const std::string Char = "char";
+    const std::string Varchar = "varchar";
 }
 
 namespace literal {
@@ -21,6 +22,7 @@ namespace literal {
     const char ParenthesisRight = ')';
     const char Comma = ',';
     const char Semicolon = ';';
+    const char Quote = '"';
 }
 
 std::unique_ptr <Schema> Parser::parse() {
@@ -34,7 +36,7 @@ std::unique_ptr <Schema> Parser::parse() {
         std::string::size_type pos;
         std::string::size_type prevPos = 0;
 
-        while ((pos = token.find_first_of(",)(;", prevPos)) != std::string::npos) {
+        while ((pos = token.find_first_of(",)(;\"", prevPos)) != std::string::npos) {
             nextToken(line, token.substr(prevPos, pos - prevPos), *s);
             nextToken(line, token.substr(pos, 1), *s);
             prevPos = pos + 1;
@@ -92,15 +94,18 @@ void Parser::nextToken(unsigned line, const std::string &token, Schema &schema) 
             if (isIdentifier(tok)) {
                 state = State::TableName;
                 schema.relations.push_back(Schema::Relation(token));
+            } else if (tok[0] == literal::Quote) {
             } else {
                 throw ParserError(line, "Expected TableName, found '" + token + "'");
             }
             break;
         case State::TableName:
-            if (tok.size() == 1 && tok[0] == literal::ParenthesisLeft)
+            if (tok.size() == 1 && tok[0] == literal::ParenthesisLeft) {
                 state = State::CreateTableBegin;
-            else
+            } else if (tok[0] == literal::Quote) {
+            } else {
                 throw ParserError(line, "Expected '(', found '" + token + "'");
+            }
             break;
         case State::Separator: /* fallthrough */
         case State::CreateTableBegin:
@@ -180,8 +185,11 @@ void Parser::nextToken(unsigned line, const std::string &token, Schema &schema) 
             } else if (tok == keyword::Char) {
                 schema.relations.back().attributes.back().type = Types::Tag::Char;
                 state = State::AttributeTypeChar;
+            } else if (tok == keyword::Varchar) {
+                schema.relations.back().attributes.back().type = Types::Tag::Varchar;
+                state = State::AttributeTypeVarchar;
             } else if (tok == keyword::Numeric) {
-                //schema.relations.back().attributes.back().type=Types::Tag::Numeric;
+                schema.relations.back().attributes.back().type=Types::Tag::Numeric;
                 state = State::AttributeTypeNumeric;
             }
             else throw ParserError(line, "Expected type after attribute name, found '" + token + "'");
@@ -206,6 +214,26 @@ void Parser::nextToken(unsigned line, const std::string &token, Schema &schema) 
             else
                 throw ParserError(line, "Expected ')' after length of CHAR, found'" + token + "'");
             break;
+        case State::AttributeTypeVarchar:
+            if (tok.size() == 1 && tok[0] == literal::ParenthesisLeft)
+                state = State::VarcharBegin;
+            else
+                throw ParserError(line, "Expected '(' after 'VARCHAR', found'" + token + "'");
+            break;
+        case State::VarcharBegin:
+            if (isInt(tok)) {
+                schema.relations.back().attributes.back().len = std::atoi(tok.c_str());
+                state = State::VarcharValue;
+            } else {
+                throw ParserError(line, "Expected integer after 'VARCHAR(', found'" + token + "'");
+            }
+            break;
+        case State::VarcharValue:
+            if (tok.size() == 1 && tok[0] == literal::ParenthesisRight)
+                state = State::VarcharEnd;
+            else
+                throw ParserError(line, "Expected ')' after length of VARCHAR, found'" + token + "'");
+            break;
         case State::AttributeTypeNumeric:
             if (tok.size() == 1 && tok[0] == literal::ParenthesisLeft)
                 state = State::NumericBegin;
@@ -214,7 +242,7 @@ void Parser::nextToken(unsigned line, const std::string &token, Schema &schema) 
             break;
         case State::NumericBegin:
             if (isInt(tok)) {
-                //schema.relations.back().attributes.back().len1=std::atoi(tok.c_str());
+                schema.relations.back().attributes.back().len=std::atoi(tok.c_str());
                 state = State::NumericValue1;
             } else {
                 throw ParserError(line, "Expected integer after 'NUMERIC(', found'" + token + "'");
@@ -234,13 +262,14 @@ void Parser::nextToken(unsigned line, const std::string &token, Schema &schema) 
             break;
         case State::NumericSeparator:
             if (isInt(tok)) {
-                //schema.relations.back().attributes.back().len2=std::atoi(tok.c_str());
+                schema.relations.back().attributes.back().len2=std::atoi(tok.c_str());
                 state = State::NumericValue2;
             } else {
                 throw ParserError(line, "Expected second length for NUMERIC type, found'" + token + "'");
             }
             break;
         case State::CharEnd: /* fallthrough */
+        case State::VarcharEnd: /* fallthrough */
         case State::NumericEnd: /* fallthrough */
         case State::AttributeTypeInt:
             if (tok.size() == 1 && tok[0] == literal::Comma)

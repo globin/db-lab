@@ -11,6 +11,7 @@ struct Schema {
             std::string name;
             Types::Tag type;
             unsigned len;
+            unsigned len2;
             bool notNull;
 
             Attribute() : len(~0), notNull(true) {
