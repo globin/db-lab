@@ -40,7 +40,7 @@ int32_t nurand(int32_t A, int32_t x, int32_t y) {
 }
 
 void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t *supware,
-        int32_t *itemid, int32_t *qty, uint64_t now) {
+        int32_t *itemid, int32_t *qty, Timestamp now) {
 
     auto w_tax = WAREHOUSE_TABLE.lookup(Integer(w_id)).w_tax;
     auto c_discount = CUSTOMER_TABLE.lookup(
@@ -57,7 +57,7 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
         if (w_id != supware[i]) all_local=0;
     }
 
-    ORDER_TABLE.insert(Order(o_id, Integer(d_id), Integer(w_id), Integer(c_id), Timestamp(now), Integer(0),
+    ORDER_TABLE.insert(Order(o_id, Integer(d_id), Integer(w_id), Integer(c_id), now, Integer(0),
             Numeric<2, 0>(ol_cnt), Numeric<1, 0>(all_local)));
     NEWORDER_TABLE.insert(Neworder(o_id, Integer(d_id), Integer(w_id)));
 
@@ -111,7 +111,7 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
     }
 }
 
-void newOrderRandom(uint64_t now, int32_t w_id) {
+void newOrderRandom(Timestamp now, int32_t w_id) {
     int32_t d_id = urand(1, 1);
     int32_t c_id = nurand(1023, 1, 3000);
     int32_t ol_cnt = urand(5, 15);
@@ -164,6 +164,37 @@ void read_tables() {
     read_file_to_table<Orderline>("../data/tpcc_orderline.tbl", ORDERLINE_TABLE);
     read_file_to_table<Stock>("../data/tpcc_stock.tbl", STOCK_TABLE);
 }
+
+void delivery(Integer w_id, Integer o_carrier_id, Timestamp now) {
+    for (Integer d_id = Integer(1); d_id <= 10; d_id += Integer(1)) {
+        auto o_id = ORDER_TABLE.select(
+                tuple<Integer, Integer, Integer>(w_id, d_id, Integer(0)),
+                tuple<Integer, Integer, Integer>(w_id, d_id + Integer(1), Integer(0)),
+                [](const Order& data) { return true; } // equivalent to min
+        ).o_id;
+        NEWORDER_TABLE.remove(tuple<Integer, Integer, Integer>(w_id, d_id, o_id));
+
+        auto order = ORDER_TABLE.lookup(tuple<Integer, Integer, Integer>(w_id, d_id, o_id));
+        auto o_ol_cnt = order.o_ol_cnt;
+        auto o_c_id = order.o_c_id;
+        order.o_carrier_id = o_carrier_id;
+
+        auto ol_total = Numeric<6, 2>(0);
+
+        for (auto ol_number = Integer(1); Numeric<2, 0>(ol_number) < o_ol_cnt; ol_number += Integer(1)) {
+            auto ol = ORDERLINE_TABLE.select(
+                tuple<Integer, Integer, Integer, Integer>(w_id, d_id, o_id, 0),
+                tuple<Integer, Integer, Integer, Integer>(w_id, d_id, o_id + 1, 0),
+                [ol_number](const Orderline& data) { return data.ol_number == ol_number; }
+            );
+            ol_total = ol_total + ol.ol_amount;
+            ol.ol_delivery_d = now;
+        }
+
+        CUSTOMER_TABLE.lookup(tuple<Integer, Integer, Integer>(w_id, d_id, o_c_id));
+    }
+}
+
 void print_sizes() {
     cout << endl;
     cout << "Warehouse: " << WAREHOUSE_TABLE.size() << endl;
@@ -176,6 +207,19 @@ void print_sizes() {
     cout << "Stock: " << STOCK_TABLE.size() << endl;
 }
 
+void deliveryRandom(Timestamp now, int32_t warehouses) {
+   delivery(Integer(urand(1, warehouses)), Integer(urand(1, 10)), now);
+}
+
+void oltp(Timestamp now) {
+   int rnd=urand(1,100);
+   if (rnd<=10) {
+      deliveryRandom(now, urand(1, warehouses));
+   } else {
+      newOrderRandom(now, urand(1, warehouses));
+   }
+}
+
 int main(int argc, char const *argv[]) {
 
     auto start = chrono::high_resolution_clock::now();
@@ -185,7 +229,7 @@ int main(int argc, char const *argv[]) {
     print_sizes();
     start = chrono::high_resolution_clock::now();
     for (int i = 0; i < 1000000; i++) {
-        newOrderRandom(time(0), urand(1, warehouses));
+        oltp(Timestamp(time(0)));
     }
     cout << "1000000 iterations " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() << "s" << endl;
     print_sizes();
