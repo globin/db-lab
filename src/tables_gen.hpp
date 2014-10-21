@@ -11,8 +11,8 @@ struct Warehouse {
     Varchar<20> w_city;
     Char<2> w_state;
     Char<9> w_zip;
-    Numeric<4,4> w_tax;
-    Numeric<12,2> w_ytd;
+    Numeric<4, 4> w_tax;
+    Numeric<12, 2> w_ytd;
 
     Warehouse(
         Integer w_id,
@@ -22,8 +22,8 @@ struct Warehouse {
         Varchar<20> w_city,
         Char<2> w_state,
         Char<9> w_zip,
-        Numeric<4,4> w_tax,
-        Numeric<12,2> w_ytd
+        Numeric<4, 4> w_tax,
+        Numeric<12, 2> w_ytd
     ) : 
         w_id(w_id),
         w_name(w_name),
@@ -45,8 +45,8 @@ struct Warehouse {
             Varchar<20>::castString(row[4].c_str(), row[4].length()),
             Char<2>::castString(row[5].c_str(), row[5].length()),
             Char<9>::castString(row[6].c_str(), row[6].length()),
-            Numeric<4,4>::castString(row[7].c_str(), row[7].length()),
-            Numeric<12,2>::castString(row[8].c_str(), row[8].length())
+            Numeric<4, 4>::castString(row[7].c_str(), row[7].length()),
+            Numeric<12, 2>::castString(row[8].c_str(), row[8].length())
         );
     }
 
@@ -66,8 +66,8 @@ struct District {
     Varchar<20> d_city;
     Char<2> d_state;
     Char<9> d_zip;
-    Numeric<4,4> d_tax;
-    Numeric<12,2> d_ytd;
+    Numeric<4, 4> d_tax;
+    Numeric<12, 2> d_ytd;
     Integer d_next_o_id;
 
     District(
@@ -79,8 +79,8 @@ struct District {
         Varchar<20> d_city,
         Char<2> d_state,
         Char<9> d_zip,
-        Numeric<4,4> d_tax,
-        Numeric<12,2> d_ytd,
+        Numeric<4, 4> d_tax,
+        Numeric<12, 2> d_ytd,
         Integer d_next_o_id
     ) : 
         d_id(d_id),
@@ -106,18 +106,18 @@ struct District {
             Varchar<20>::castString(row[5].c_str(), row[5].length()),
             Char<2>::castString(row[6].c_str(), row[6].length()),
             Char<9>::castString(row[7].c_str(), row[7].length()),
-            Numeric<4,4>::castString(row[8].c_str(), row[8].length()),
-            Numeric<12,2>::castString(row[9].c_str(), row[9].length()),
+            Numeric<4, 4>::castString(row[8].c_str(), row[8].length()),
+            Numeric<12, 2>::castString(row[9].c_str(), row[9].length()),
             Integer::castString(row[10].c_str(), row[10].length())
         );
     }
 
-    tuple<Integer, Integer> index() {
-        return tuple<Integer, Integer>(d_w_id,d_id);
+    std::tuple<Integer, Integer> index() {
+        return std::tuple<Integer, Integer>(d_w_id, d_id);
     }
 };
 
-typedef Table<District, tuple<Integer, Integer>> DistrictTable;
+typedef Table<District, std::tuple<Integer, Integer>> DistrictTable;
 
 struct Customer {
     Integer c_id;
@@ -134,12 +134,12 @@ struct Customer {
     Char<16> c_phone;
     Timestamp c_since;
     Char<2> c_credit;
-    Numeric<12,2> c_credit_lim;
-    Numeric<4,4> c_discount;
-    Numeric<12,2> c_balance;
-    Numeric<12,2> c_ytd_paymenr;
-    Numeric<4,0> c_payment_cnt;
-    Numeric<4,0> c_delivery_cnt;
+    Numeric<12, 2> c_credit_lim;
+    Numeric<4, 4> c_discount;
+    Numeric<12, 2> c_balance;
+    Numeric<12, 2> c_ytd_paymenr;
+    Numeric<4, 0> c_payment_cnt;
+    Numeric<4, 0> c_delivery_cnt;
     Varchar<500> c_data;
 
     Customer(
@@ -157,12 +157,12 @@ struct Customer {
         Char<16> c_phone,
         Timestamp c_since,
         Char<2> c_credit,
-        Numeric<12,2> c_credit_lim,
-        Numeric<4,4> c_discount,
-        Numeric<12,2> c_balance,
-        Numeric<12,2> c_ytd_paymenr,
-        Numeric<4,0> c_payment_cnt,
-        Numeric<4,0> c_delivery_cnt,
+        Numeric<12, 2> c_credit_lim,
+        Numeric<4, 4> c_discount,
+        Numeric<12, 2> c_balance,
+        Numeric<12, 2> c_ytd_paymenr,
+        Numeric<4, 0> c_payment_cnt,
+        Numeric<4, 0> c_delivery_cnt,
         Varchar<500> c_data
     ) : 
         c_id(c_id),
@@ -204,22 +204,22 @@ struct Customer {
             Char<16>::castString(row[11].c_str(), row[11].length()),
             Timestamp::castString(row[12].c_str(), row[12].length()),
             Char<2>::castString(row[13].c_str(), row[13].length()),
-            Numeric<12,2>::castString(row[14].c_str(), row[14].length()),
-            Numeric<4,4>::castString(row[15].c_str(), row[15].length()),
-            Numeric<12,2>::castString(row[16].c_str(), row[16].length()),
-            Numeric<12,2>::castString(row[17].c_str(), row[17].length()),
-            Numeric<4,0>::castString(row[18].c_str(), row[18].length()),
-            Numeric<4,0>::castString(row[19].c_str(), row[19].length()),
+            Numeric<12, 2>::castString(row[14].c_str(), row[14].length()),
+            Numeric<4, 4>::castString(row[15].c_str(), row[15].length()),
+            Numeric<12, 2>::castString(row[16].c_str(), row[16].length()),
+            Numeric<12, 2>::castString(row[17].c_str(), row[17].length()),
+            Numeric<4, 0>::castString(row[18].c_str(), row[18].length()),
+            Numeric<4, 0>::castString(row[19].c_str(), row[19].length()),
             Varchar<500>::castString(row[20].c_str(), row[20].length())
         );
     }
 
-    tuple<Integer, Integer, Integer> index() {
-        return tuple<Integer, Integer, Integer>(c_w_id,c_d_id,c_id);
+    std::tuple<Integer, Integer, Integer> index() {
+        return std::tuple<Integer, Integer, Integer>(c_w_id, c_d_id, c_id);
     }
 };
 
-typedef Table<Customer, tuple<Integer, Integer, Integer>> CustomerTable;
+typedef Table<Customer, std::tuple<Integer, Integer, Integer>> CustomerTable;
 
 struct History {
     Integer h_c_id;
@@ -228,7 +228,7 @@ struct History {
     Integer h_d_id;
     Integer h_w_id;
     Timestamp h_date;
-    Numeric<6,2> h_amount;
+    Numeric<6, 2> h_amount;
     Varchar<24> h_data;
 
     History(
@@ -238,7 +238,7 @@ struct History {
         Integer h_d_id,
         Integer h_w_id,
         Timestamp h_date,
-        Numeric<6,2> h_amount,
+        Numeric<6, 2> h_amount,
         Varchar<24> h_data
     ) : 
         h_c_id(h_c_id),
@@ -259,17 +259,17 @@ struct History {
             Integer::castString(row[3].c_str(), row[3].length()),
             Integer::castString(row[4].c_str(), row[4].length()),
             Timestamp::castString(row[5].c_str(), row[5].length()),
-            Numeric<6,2>::castString(row[6].c_str(), row[6].length()),
+            Numeric<6, 2>::castString(row[6].c_str(), row[6].length()),
             Varchar<24>::castString(row[7].c_str(), row[7].length())
         );
     }
 
-    tuple<> index() {
-        return tuple<>();
+    std::tuple<> index() {
+        return std::tuple<>();
     }
 };
 
-typedef Table<History, tuple<>> HistoryTable;
+typedef Table<History, std::tuple<>> HistoryTable;
 
 struct Neworder {
     Integer no_o_id;
@@ -294,12 +294,12 @@ struct Neworder {
         );
     }
 
-    tuple<Integer, Integer, Integer> index() {
-        return tuple<Integer, Integer, Integer>(no_w_id,no_d_id,no_o_id);
+    std::tuple<Integer, Integer, Integer> index() {
+        return std::tuple<Integer, Integer, Integer>(no_w_id, no_d_id, no_o_id);
     }
 };
 
-typedef Table<Neworder, tuple<Integer, Integer, Integer>> NeworderTable;
+typedef Table<Neworder, std::tuple<Integer, Integer, Integer>> NeworderTable;
 
 struct Order {
     Integer o_id;
@@ -308,8 +308,8 @@ struct Order {
     Integer o_c_id;
     Timestamp o_entry_d;
     Integer o_carrier_id;
-    Numeric<2,0> o_ol_cnt;
-    Numeric<1,0> o_all_local;
+    Numeric<2, 0> o_ol_cnt;
+    Numeric<1, 0> o_all_local;
 
     Order(
         Integer o_id,
@@ -318,8 +318,8 @@ struct Order {
         Integer o_c_id,
         Timestamp o_entry_d,
         Integer o_carrier_id,
-        Numeric<2,0> o_ol_cnt,
-        Numeric<1,0> o_all_local
+        Numeric<2, 0> o_ol_cnt,
+        Numeric<1, 0> o_all_local
     ) : 
         o_id(o_id),
         o_d_id(o_d_id),
@@ -339,17 +339,17 @@ struct Order {
             Integer::castString(row[3].c_str(), row[3].length()),
             Timestamp::castString(row[4].c_str(), row[4].length()),
             Integer::castString(row[5].c_str(), row[5].length()),
-            Numeric<2,0>::castString(row[6].c_str(), row[6].length()),
-            Numeric<1,0>::castString(row[7].c_str(), row[7].length())
+            Numeric<2, 0>::castString(row[6].c_str(), row[6].length()),
+            Numeric<1, 0>::castString(row[7].c_str(), row[7].length())
         );
     }
 
-    tuple<Integer, Integer, Integer> index() {
-        return tuple<Integer, Integer, Integer>(o_w_id,o_d_id,o_id);
+    std::tuple<Integer, Integer, Integer> index() {
+        return std::tuple<Integer, Integer, Integer>(o_w_id, o_d_id, o_id);
     }
 };
 
-typedef Table<Order, tuple<Integer, Integer, Integer>> OrderTable;
+typedef Table<Order, std::tuple<Integer, Integer, Integer>> OrderTable;
 
 struct Orderline {
     Integer ol_o_id;
@@ -359,8 +359,8 @@ struct Orderline {
     Integer ol_i_id;
     Integer ol_supply_w_id;
     Timestamp ol_delivery_d;
-    Numeric<2,0> ol_quantity;
-    Numeric<6,2> ol_amount;
+    Numeric<2, 0> ol_quantity;
+    Numeric<6, 2> ol_amount;
     Char<24> ol_dist_info;
 
     Orderline(
@@ -371,8 +371,8 @@ struct Orderline {
         Integer ol_i_id,
         Integer ol_supply_w_id,
         Timestamp ol_delivery_d,
-        Numeric<2,0> ol_quantity,
-        Numeric<6,2> ol_amount,
+        Numeric<2, 0> ol_quantity,
+        Numeric<6, 2> ol_amount,
         Char<24> ol_dist_info
     ) : 
         ol_o_id(ol_o_id),
@@ -396,31 +396,31 @@ struct Orderline {
             Integer::castString(row[4].c_str(), row[4].length()),
             Integer::castString(row[5].c_str(), row[5].length()),
             Timestamp::castString(row[6].c_str(), row[6].length()),
-            Numeric<2,0>::castString(row[7].c_str(), row[7].length()),
-            Numeric<6,2>::castString(row[8].c_str(), row[8].length()),
+            Numeric<2, 0>::castString(row[7].c_str(), row[7].length()),
+            Numeric<6, 2>::castString(row[8].c_str(), row[8].length()),
             Char<24>::castString(row[9].c_str(), row[9].length())
         );
     }
 
-    tuple<Integer, Integer, Integer, Integer> index() {
-        return tuple<Integer, Integer, Integer, Integer>(ol_w_id,ol_d_id,ol_o_id,ol_number);
+    std::tuple<Integer, Integer, Integer, Integer> index() {
+        return std::tuple<Integer, Integer, Integer, Integer>(ol_w_id, ol_d_id, ol_o_id, ol_number);
     }
 };
 
-typedef Table<Orderline, tuple<Integer, Integer, Integer, Integer>> OrderlineTable;
+typedef Table<Orderline, std::tuple<Integer, Integer, Integer, Integer>> OrderlineTable;
 
 struct Item {
     Integer i_id;
     Integer i_im_id;
     Varchar<24> i_name;
-    Numeric<5,2> i_price;
+    Numeric<5, 2> i_price;
     Varchar<50> i_data;
 
     Item(
         Integer i_id,
         Integer i_im_id,
         Varchar<24> i_name,
-        Numeric<5,2> i_price,
+        Numeric<5, 2> i_price,
         Varchar<50> i_data
     ) : 
         i_id(i_id),
@@ -435,7 +435,7 @@ struct Item {
             Integer::castString(row[0].c_str(), row[0].length()),
             Integer::castString(row[1].c_str(), row[1].length()),
             Varchar<24>::castString(row[2].c_str(), row[2].length()),
-            Numeric<5,2>::castString(row[3].c_str(), row[3].length()),
+            Numeric<5, 2>::castString(row[3].c_str(), row[3].length()),
             Varchar<50>::castString(row[4].c_str(), row[4].length())
         );
     }
@@ -450,7 +450,7 @@ typedef Table<Item, Integer> ItemTable;
 struct Stock {
     Integer s_i_id;
     Integer s_w_id;
-    Numeric<4,0> s_quantity;
+    Numeric<4, 0> s_quantity;
     Char<24> s_dist_01;
     Char<24> s_dist_02;
     Char<24> s_dist_03;
@@ -461,15 +461,15 @@ struct Stock {
     Char<24> s_dist_08;
     Char<24> s_dist_09;
     Char<24> s_dist_10;
-    Numeric<8,0> s_ytd;
-    Numeric<4,0> s_order_cnt;
-    Numeric<4,0> s_remote_cnt;
+    Numeric<8, 0> s_ytd;
+    Numeric<4, 0> s_order_cnt;
+    Numeric<4, 0> s_remote_cnt;
     Varchar<50> s_data;
 
     Stock(
         Integer s_i_id,
         Integer s_w_id,
-        Numeric<4,0> s_quantity,
+        Numeric<4, 0> s_quantity,
         Char<24> s_dist_01,
         Char<24> s_dist_02,
         Char<24> s_dist_03,
@@ -480,9 +480,9 @@ struct Stock {
         Char<24> s_dist_08,
         Char<24> s_dist_09,
         Char<24> s_dist_10,
-        Numeric<8,0> s_ytd,
-        Numeric<4,0> s_order_cnt,
-        Numeric<4,0> s_remote_cnt,
+        Numeric<8, 0> s_ytd,
+        Numeric<4, 0> s_order_cnt,
+        Numeric<4, 0> s_remote_cnt,
         Varchar<50> s_data
     ) : 
         s_i_id(s_i_id),
@@ -508,7 +508,7 @@ struct Stock {
         return Stock(
             Integer::castString(row[0].c_str(), row[0].length()),
             Integer::castString(row[1].c_str(), row[1].length()),
-            Numeric<4,0>::castString(row[2].c_str(), row[2].length()),
+            Numeric<4, 0>::castString(row[2].c_str(), row[2].length()),
             Char<24>::castString(row[3].c_str(), row[3].length()),
             Char<24>::castString(row[4].c_str(), row[4].length()),
             Char<24>::castString(row[5].c_str(), row[5].length()),
@@ -519,17 +519,17 @@ struct Stock {
             Char<24>::castString(row[10].c_str(), row[10].length()),
             Char<24>::castString(row[11].c_str(), row[11].length()),
             Char<24>::castString(row[12].c_str(), row[12].length()),
-            Numeric<8,0>::castString(row[13].c_str(), row[13].length()),
-            Numeric<4,0>::castString(row[14].c_str(), row[14].length()),
-            Numeric<4,0>::castString(row[15].c_str(), row[15].length()),
+            Numeric<8, 0>::castString(row[13].c_str(), row[13].length()),
+            Numeric<4, 0>::castString(row[14].c_str(), row[14].length()),
+            Numeric<4, 0>::castString(row[15].c_str(), row[15].length()),
             Varchar<50>::castString(row[16].c_str(), row[16].length())
         );
     }
 
-    tuple<Integer, Integer> index() {
-        return tuple<Integer, Integer>(s_w_id,s_i_id);
+    std::tuple<Integer, Integer> index() {
+        return std::tuple<Integer, Integer>(s_w_id, s_i_id);
     }
 };
 
-typedef Table<Stock, tuple<Integer, Integer>> StockTable;
+typedef Table<Stock, std::tuple<Integer, Integer>> StockTable;
 

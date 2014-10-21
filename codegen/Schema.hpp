@@ -21,7 +21,9 @@ struct Schema {
         std::vector <Schema::Relation::Attribute> attributes;
         std::vector<unsigned> primaryKey;
 
-        Relation(const std::string &name) : name(name) {
+        Relation(std::string name) {
+            name[0] = toupper(name[0]);
+            this->name = name;
         }
     };
     struct Index {
@@ -37,4 +39,5 @@ struct Schema {
     std::vector <Schema::Index> indexes;
 
     std::string toString() const;
+    std::string toCppHeader() const;
 };

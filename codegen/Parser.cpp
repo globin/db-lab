@@ -1,5 +1,5 @@
 #include "Parser.hpp"
-#include "../../../../../../usr/include/c++/4.8/bits/basic_string.h"
+#include <string>
 #include <vector>
 #include <iostream>
 #include <iterator>
