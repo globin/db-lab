@@ -1,5 +1,4 @@
-#ifndef H_Schema_hpp
-#define H_Schema_hpp
+#pragma once
 
 #include <vector>
 #include <string>
@@ -25,10 +24,17 @@ struct Schema {
         Relation(const std::string &name) : name(name) {
         }
     };
+    struct Index {
+        std::string name;
+        std::string relationName;
+        std::vector<std::string> columnNames;
+
+        Index(const std::string &name) : name(name) {
+        }
+    };
 
     std::vector <Schema::Relation> relations;
+    std::vector <Schema::Index> indexes;
 
     std::string toString() const;
 };
-
-#endif

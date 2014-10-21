@@ -4,6 +4,8 @@
 static std::string type(const Schema::Relation::Attribute &attr) {
     Types::Tag type = attr.type;
     switch (type) {
+        case Types::Tag::Timestamp:
+            return "Timestamp";
         case Types::Tag::Integer:
             return "Integer";
         case Types::Tag::Numeric: {

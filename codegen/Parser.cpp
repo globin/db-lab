@@ -1,4 +1,6 @@
 #include "Parser.hpp"
+#include "../../../../../../usr/include/c++/4.8/bits/basic_string.h"
+#include <vector>
 #include <iostream>
 #include <iterator>
 #include <algorithm>
@@ -9,7 +11,10 @@ namespace keyword {
     const std::string Key = "key";
     const std::string Create = "create";
     const std::string Table = "table";
+    const std::string Index = "index";
+    const std::string On = "on";
     const std::string Integer = "integer";
+    const std::string Timestamp = "timestamp";
     const std::string Numeric = "numeric";
     const std::string Not = "not";
     const std::string Null = "null";
@@ -50,18 +55,21 @@ std::unique_ptr <Schema> Parser::parse() {
 }
 
 static bool isIdentifier(const std::string &str) {
-    if (
-            str == keyword::Primary ||
-                    str == keyword::Key ||
-                    str == keyword::Table ||
-                    str == keyword::Create ||
-                    str == keyword::Integer ||
-                    str == keyword::Numeric ||
-                    str == keyword::Not ||
-                    str == keyword::Null ||
-                    str == keyword::Char
-            )
+    if (str == keyword::Primary ||
+        str == keyword::Key ||
+        str == keyword::Table ||
+        str == keyword::Index ||
+        str == keyword::Create ||
+        str == keyword::Integer ||
+        str == keyword::Numeric ||
+        str == keyword::Not ||
+        str == keyword::Null ||
+        str == keyword::Char ||
+        str == keyword::Varchar ||
+        str == keyword::Timestamp
+    ) {
         return false;
+    }
     return str.find_first_not_of("abcdefghijklmnopqrstuvwxyz_1234567890") == std::string::npos;
 }
 
@@ -85,10 +93,13 @@ void Parser::nextToken(unsigned line, const std::string &token, Schema &schema) 
                 throw ParserError(line, "Expected 'CREATE', found '" + token + "'");
             break;
         case State::Create:
-            if (tok == keyword::Table)
+            if (tok == keyword::Table) {
                 state = State::Table;
-            else
-                throw ParserError(line, "Expected 'TABLE', found '" + token + "'");
+            } else if (tok == keyword::Index) {
+                state = State::Index;
+            } else {
+                throw ParserError(line, "Expected 'INDEX' or 'TABLE', found '" + token + "'");
+            }
             break;
         case State::Table:
             if (isIdentifier(tok)) {
@@ -107,6 +118,54 @@ void Parser::nextToken(unsigned line, const std::string &token, Schema &schema) 
                 throw ParserError(line, "Expected '(', found '" + token + "'");
             }
             break;
+        case State::Index:
+            if (isIdentifier(tok)) {
+                state = State::IndexName;
+                schema.indexes.push_back(Schema::Index(token));
+            } else {
+                throw ParserError(line, "Expected IndexName, found '" + token + "'");
+            }
+            break;
+        case State::IndexName:
+            if (tok == keyword::On) {
+                state = State::IndexTableName;
+            } else {
+                throw ParserError(line, "Expected 'on', found '" + token + "'");
+            }
+            break;
+        case State::IndexTableName:
+            if (isIdentifier(tok)) {
+                schema.indexes.back().relationName = token;
+                state = State::IndexColumns;
+            } else if (tok.size() == 1 && tok[0] == literal::Quote) {
+            } else {
+                throw ParserError(line, "Expected IndexTableName, found '" + token + "'");
+            }
+            break;
+        case State::IndexColumns:
+            if (tok.size() == 1 && tok[0] == literal::ParenthesisLeft) {
+                state = State::IndexColumnBegin;
+            } else if (tok.size() == 1 && tok[0] == literal::Quote) {
+            } else {
+                throw ParserError(line, "Expected '(' before list of index attributes, found '" + token + "'");
+            }
+            break;
+        case State::IndexColumnBegin:
+            if (isIdentifier(tok)) {
+                schema.indexes.back().columnNames.push_back(token);
+                state = State::IndexColumnName;
+            } else {
+                throw ParserError(line, "Expected index attribute, found '" + token + "'");
+            }
+            break;
+        case State::IndexColumnName:
+            if (tok.size() == 1 && tok[0] == literal::Comma)
+                state = State::IndexColumnBegin;
+            else if (tok.size() == 1 && tok[0] == literal::ParenthesisRight)
+                state = State::IndexEnd;
+            else
+                throw ParserError(line, "Expected ',' or ')', found '" + token + "'");
+            break;
         case State::Separator: /* fallthrough */
         case State::CreateTableBegin:
             if (tok.size() == 1 && tok[0] == literal::ParenthesisRight) {
@@ -121,6 +180,7 @@ void Parser::nextToken(unsigned line, const std::string &token, Schema &schema) 
                 throw ParserError(line, "Expected attribute definition, primary key definition or ')', found '" + token + "'");
             }
             break;
+        case State::IndexEnd: /* fallthrough */
         case State::CreateTableEnd:
             if (tok.size() == 1 && tok[0] == literal::Semicolon)
                 state = State::Semicolon;
@@ -182,6 +242,9 @@ void Parser::nextToken(unsigned line, const std::string &token, Schema &schema) 
             if (tok == keyword::Integer) {
                 schema.relations.back().attributes.back().type = Types::Tag::Integer;
                 state = State::AttributeTypeInt;
+            } else if (tok == keyword::Timestamp) {
+                schema.relations.back().attributes.back().type = Types::Tag::Timestamp;
+                state = State::AttributeTypeTimestamp;
             } else if (tok == keyword::Char) {
                 schema.relations.back().attributes.back().type = Types::Tag::Char;
                 state = State::AttributeTypeChar;
@@ -271,7 +334,8 @@ void Parser::nextToken(unsigned line, const std::string &token, Schema &schema) 
         case State::CharEnd: /* fallthrough */
         case State::VarcharEnd: /* fallthrough */
         case State::NumericEnd: /* fallthrough */
-        case State::AttributeTypeInt:
+        case State::AttributeTypeInt: /* fallthrough */
+        case State::AttributeTypeTimestamp:
             if (tok.size() == 1 && tok[0] == literal::Comma)
                 state = State::Separator;
             else if (tok == keyword::Not)

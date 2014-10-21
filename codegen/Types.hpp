@@ -11,7 +11,7 @@
 */
 namespace Types {
     enum class Tag : unsigned {
-        Integer, Char, Varchar, Numeric
+        Integer, Char, Varchar, Numeric, Timestamp
     };
 }
 
