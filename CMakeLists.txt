@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 2.8.4)
 project(db-lab)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 set(CODEGEN_SOURCE_FILES
     codegen/codegen.cpp
@@ -14,7 +16,7 @@ set(CODEGEN_SOURCE_FILES
 add_executable(db-lab-codegen ${CODEGEN_SOURCE_FILES})
 
 set(SOURCE_FILES
-    src/neworderrandom.cpp
+    src/oltp.cpp
     src/types.hpp
     src/table.hpp
     src/tables_gen.hpp

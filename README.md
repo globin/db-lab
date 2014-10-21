@@ -3,7 +3,10 @@ db-lab
 
 Run with:
 ```
-cmake .
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
-./db-lab
+cd ..
+./build/db-lab
 ```
