@@ -46,7 +46,7 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
     auto c_discount = CUSTOMER_TABLE.lookup(
             tuple<Integer, Integer, Integer>(Integer(w_id), Integer(d_id), Integer(c_id))
     ).c_discount;
-    auto district = DISTRICT_TABLE.lookup(tuple<Integer, Integer>(Integer(d_id), Integer(w_id)));
+    auto district = DISTRICT_TABLE.lookup(tuple<Integer, Integer>(Integer(w_id), Integer(d_id)));
     auto o_id = district.d_next_o_id;
     auto d_tax = district.d_tax;
 
@@ -57,9 +57,9 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
         if (w_id != supware[i]) all_local=0;
     }
 
-    ORDER_TABLE.insert(Order(o_id, Integer(d_id), Integer(w_id), Integer(c_id), now, Integer(0),
+    ORDER_TABLE.insert(Order(o_id, Integer(w_id), Integer(d_id), Integer(c_id), now, Integer(0),
             Numeric<2, 0>(ol_cnt), Numeric<1, 0>(all_local)));
-    NEWORDER_TABLE.insert(Neworder(o_id, Integer(d_id), Integer(w_id)));
+    NEWORDER_TABLE.insert(Neworder(Integer(w_id), Integer(d_id), o_id));
 
     for (int i = 0; i < ol_cnt; i++) {
         auto i_price = ITEM_TABLE.lookup(Integer(itemid[i])).i_price;
