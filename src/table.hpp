@@ -2,6 +2,10 @@
 
 #include <vector>
 #include <map>
+#include <experimental/optional>
+
+template<typename T>
+using optional = std::experimental::optional<T>;
 
 using namespace std;
 
@@ -15,11 +19,23 @@ public:
         return rows.at(index.at(index_element));
     }
 
-    Data &select(Index lower_bound, Index upper_bound, std::function<bool(const Data&)> pred) {
+    optional<Data> select(Index lower_bound, Index upper_bound, std::function<bool(const Data&)> pred) {
         auto l = index.lower_bound(lower_bound);
         auto u = index.upper_bound(upper_bound);
 
-        return rows.at((*find_if(l, u, [pred, this](pair<Index, size_t> pair) { return pred(rows.at(pair.second)); })).second);
+        auto key = *find_if(l, u, [pred, this](pair<Index, size_t> pair) {
+            if (rows.size() > pair.second) {
+                return pred(rows.at(pair.second));
+            }
+            return false;
+        });
+
+        // not found
+        if (key.first >= upper_bound) {
+            return optional<Data>();
+        }
+
+        return rows.at(key.second);
     }
 
     void insert(Data data) {

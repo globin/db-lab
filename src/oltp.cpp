@@ -167,11 +167,14 @@ void read_tables() {
 
 void delivery(Integer w_id, Integer o_carrier_id, Timestamp now) {
     for (Integer d_id = Integer(1); d_id <= 10; d_id += Integer(1)) {
-        auto o_id = ORDER_TABLE.select(
+         auto neworder = NEWORDER_TABLE.select(
                 tuple<Integer, Integer, Integer>(w_id, d_id, Integer(0)),
                 tuple<Integer, Integer, Integer>(w_id, d_id + Integer(1), Integer(0)),
-                [](const Order& data) { return true; } // equivalent to min
-        ).o_id;
+                [](const Neworder& data) { return true; } // equivalent to min
+         );
+         if (!neworder) continue;
+
+         auto o_id = neworder->no_o_id;
         NEWORDER_TABLE.remove(tuple<Integer, Integer, Integer>(w_id, d_id, o_id));
 
         auto order = ORDER_TABLE.lookup(tuple<Integer, Integer, Integer>(w_id, d_id, o_id));
@@ -187,8 +190,8 @@ void delivery(Integer w_id, Integer o_carrier_id, Timestamp now) {
                 tuple<Integer, Integer, Integer, Integer>(w_id, d_id, o_id + 1, 0),
                 [ol_number](const Orderline& data) { return data.ol_number == ol_number; }
             );
-            ol_total = ol_total + ol.ol_amount;
-            ol.ol_delivery_d = now;
+            ol_total = ol_total + ol->ol_amount;
+            ol->ol_delivery_d = now;
         }
 
         CUSTOMER_TABLE.lookup(tuple<Integer, Integer, Integer>(w_id, d_id, o_c_id));
