@@ -89,7 +89,8 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
                 s_dist = stock.s_dist_09; break;
             case 10:
                 s_dist = stock.s_dist_10; break;
-            default:break;
+            default:
+                break;
         }
 
         if (s_quantity > qty[i]) {
@@ -175,26 +176,26 @@ void delivery(Integer w_id, Integer o_carrier_id, Timestamp now) {
          if (!neworder) continue;
 
          auto o_id = neworder->no_o_id;
-        NEWORDER_TABLE.remove(tuple<Integer, Integer, Integer>(w_id, d_id, o_id));
+         NEWORDER_TABLE.remove(tuple<Integer, Integer, Integer>(w_id, d_id, o_id));
 
-        auto order = ORDER_TABLE.lookup(tuple<Integer, Integer, Integer>(w_id, d_id, o_id));
-        auto o_ol_cnt = order.o_ol_cnt;
-        auto o_c_id = order.o_c_id;
-        order.o_carrier_id = o_carrier_id;
+         auto order = ORDER_TABLE.lookup(tuple<Integer, Integer, Integer>(w_id, d_id, o_id));
+         auto o_ol_cnt = order.o_ol_cnt;
+         auto o_c_id = order.o_c_id;
+         order.o_carrier_id = o_carrier_id;
 
-        auto ol_total = Numeric<6, 2>(0);
+         auto ol_total = Numeric<6, 2>(0);
 
-        for (auto ol_number = Integer(1); Numeric<2, 0>(ol_number) < o_ol_cnt; ol_number += Integer(1)) {
-            auto ol = ORDERLINE_TABLE.select(
-                tuple<Integer, Integer, Integer, Integer>(w_id, d_id, o_id, 0),
-                tuple<Integer, Integer, Integer, Integer>(w_id, d_id, o_id + 1, 0),
-                [ol_number](const Orderline& data) { return data.ol_number == ol_number; }
-            );
-            ol_total = ol_total + ol->ol_amount;
-            ol->ol_delivery_d = now;
-        }
+         for (auto ol_number = Integer(1); Numeric<2, 0>(ol_number) < o_ol_cnt; ol_number += Integer(1)) {
+             auto ol = ORDERLINE_TABLE.select(
+                 tuple<Integer, Integer, Integer, Integer>(w_id, d_id, o_id, 0),
+                 tuple<Integer, Integer, Integer, Integer>(w_id, d_id, o_id + 1, 0),
+                 [ol_number](const Orderline& data) { return data.ol_number == ol_number; }
+             );
+             ol_total = ol_total + ol->ol_amount;
+             ol->ol_delivery_d = now;
+         }
 
-        CUSTOMER_TABLE.lookup(tuple<Integer, Integer, Integer>(w_id, d_id, o_c_id));
+         CUSTOMER_TABLE.lookup(tuple<Integer, Integer, Integer>(w_id, d_id, o_c_id));
     }
 }
 
