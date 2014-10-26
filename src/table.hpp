@@ -16,7 +16,7 @@ class Table {
 
 public:
     Data &lookup(Index index_element) {
-        return rows.at(index.at(index_element));
+       return rows.at(index.at(index_element));
     }
 
     optional<Data> select(Index lower_bound, Index upper_bound, std::function<bool(const Data&)> pred) {
@@ -36,6 +36,10 @@ public:
         }
 
         return rows.at(key.second);
+    }
+
+    vector<Data> get_rows() {
+        return rows;
     }
 
     void insert(Data data) {

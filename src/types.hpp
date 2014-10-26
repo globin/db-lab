@@ -566,6 +566,20 @@ public:
     }
 
     /// Cast
+    Numeric<len + 1, precision> castLP1() const {
+        Numeric<len + 1, precision> r;
+        r.value = value;
+        return r;
+    }
+
+    /// Cast
+    Numeric<len + 4, precision> castLP4() const {
+        Numeric<len + 4, precision> r;
+        r.value = value;
+        return r;
+    }
+
+    /// Cast
     template<unsigned l>
     Numeric<l, precision> castS() const {
         Numeric<l, precision> r;
@@ -597,9 +611,8 @@ public:
     }
 
     /// Cast
-    template<unsigned l>
-    Numeric<l, precision - 2> castM2() const {
-        Numeric<l, precision - 2> r;
+    Numeric<len, precision - 2> castM2() const {
+        Numeric<len, precision - 2> r;
         r.value = value / 100;
         return r;
     }

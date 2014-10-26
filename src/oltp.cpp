@@ -5,6 +5,11 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <atomic>
+#include <signal.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include "types.hpp"
 #include "tables_gen.hpp"
 
@@ -38,6 +43,41 @@ int32_t urandexcept(int32_t min, int32_t max, int32_t v) {
 int32_t nurand(int32_t A, int32_t x, int32_t y) {
     return ((((random() % A) | (random() % (y - x + 1) + x)) + 42) % (y - x + 1)) + x;
 }
+
+template<typename T, typename Index>
+void read_file_to_table(char const *file_name, Table<T, Index> &table) {
+    string line;
+    ifstream warehouse_file(file_name);
+    if (warehouse_file.is_open()) {
+        while (getline(warehouse_file, line)) {
+            vector<string> column_data;
+            stringstream ss(line);
+            string cell;
+            while (getline(ss, cell, '|')) {
+                column_data.push_back(cell);
+            }
+
+            T row = T::from_row(column_data);
+
+            table.insert(row);
+        }
+        warehouse_file.close();
+    } else {
+        cerr << "Warehouse file doesn't exist!" << endl;
+    }
+}
+
+void read_tables() {
+    read_file_to_table<Warehouse>("../data/tpcc_warehouse.tbl", WAREHOUSE_TABLE);
+    read_file_to_table<Customer>("../data/tpcc_customer.tbl", CUSTOMER_TABLE);
+    read_file_to_table<District>("../data/tpcc_district.tbl", DISTRICT_TABLE);
+    read_file_to_table<Item>("../data/tpcc_item.tbl", ITEM_TABLE);
+    read_file_to_table<Neworder>("../data/tpcc_neworder.tbl", NEWORDER_TABLE);
+    read_file_to_table<Order>("../data/tpcc_order.tbl", ORDER_TABLE);
+    read_file_to_table<Orderline>("../data/tpcc_orderline.tbl", ORDERLINE_TABLE);
+    read_file_to_table<Stock>("../data/tpcc_stock.tbl", STOCK_TABLE);
+}
+
 
 void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t *supware,
         int32_t *itemid, int32_t *qty, Timestamp now) {
@@ -105,10 +145,12 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
             stock.s_order_cnt.value = s_order_cnt.value + 1;
         }
 
-        auto ol_amount = qty[i] * i_price.value * (1.0 + w_tax.value + d_tax.value) * (1.0 - c_discount.value); // FIXME
+        auto ol_amount = (Numeric<5, 2>(qty[i]) * i_price * (Numeric<4, 4>(1) + w_tax + d_tax).castLP1() *
+                (Numeric<4, 4>(1) - c_discount).castLP1().castP2().castP2()).castLP1().castM2().castM2().castM2()
+                .castM2().castM2().castM2().castM2();
         ORDERLINE_TABLE.insert(
                 Orderline(o_id, Integer(d_id), Integer(w_id), Integer(i + 1), Integer(itemid[i]), Integer(supware[i]),
-                        Timestamp(0), Numeric<2, 0>(qty[i]), Numeric<6, 2>(ol_amount), s_dist));
+                        Timestamp(0), Numeric<2, 0>(qty[i]), ol_amount, s_dist));
     }
 }
 
@@ -130,40 +172,6 @@ void newOrderRandom(Timestamp now, int32_t w_id) {
     }
 
     newOrder(w_id, d_id, c_id, ol_cnt, supware, itemid, qty, now);
-}
-
-template<typename T, typename Index>
-void read_file_to_table(char const *file_name, Table<T, Index> &table) {
-    string line;
-    ifstream warehouse_file(file_name);
-    if (warehouse_file.is_open()) {
-        while (getline(warehouse_file, line)) {
-            vector<string> column_data;
-            stringstream ss(line);
-            string cell;
-            while (getline(ss, cell, '|')) {
-                column_data.push_back(cell);
-            }
-
-            T row = T::from_row(column_data);
-
-            table.insert(row);
-        }
-        warehouse_file.close();
-    } else {
-        cerr << "Warehouse file doesn't exist!" << endl;
-    }
-}
-
-void read_tables() {
-    read_file_to_table<Warehouse>("../data/tpcc_warehouse.tbl", WAREHOUSE_TABLE);
-    read_file_to_table<Customer>("../data/tpcc_customer.tbl", CUSTOMER_TABLE);
-    read_file_to_table<District>("../data/tpcc_district.tbl", DISTRICT_TABLE);
-    read_file_to_table<Item>("../data/tpcc_item.tbl", ITEM_TABLE);
-    read_file_to_table<Neworder>("../data/tpcc_neworder.tbl", NEWORDER_TABLE);
-    read_file_to_table<Order>("../data/tpcc_order.tbl", ORDER_TABLE);
-    read_file_to_table<Orderline>("../data/tpcc_orderline.tbl", ORDERLINE_TABLE);
-    read_file_to_table<Stock>("../data/tpcc_stock.tbl", STOCK_TABLE);
 }
 
 void delivery(Integer w_id, Integer o_carrier_id, Timestamp now) {
@@ -199,6 +207,52 @@ void delivery(Integer w_id, Integer o_carrier_id, Timestamp now) {
     }
 }
 
+typedef tuple<Integer, Integer, Integer> CustomerOrderIndex;
+typedef tuple<Integer, Integer, Integer> OrderOrderlineIndex;
+typedef tuple<Customer, Order, vector<Orderline>> CustomerOrderOrderlineItem;
+void customer_price_query() {
+    auto customers = CUSTOMER_TABLE.get_rows();
+    customers.erase(
+        remove_if(customers.begin(), customers.end(), [](Customer c) { return c.c_last.value[0] != 'B'; }),
+        customers.end()
+    );
+
+    auto customer_order_map = map<CustomerOrderIndex, pair<Customer, vector<Order>>>();
+    for (auto c : customers) {
+        customer_order_map.insert(pair<CustomerOrderIndex, pair<Customer, vector<Order>>>(
+                CustomerOrderIndex(c.c_w_id, c.c_d_id, c.c_id), pair<Customer, vector<Order>>(c, vector<Order>())));
+    }
+    for (auto o : ORDER_TABLE.get_rows()) {
+        if (customer_order_map.count(CustomerOrderIndex(o.o_w_id, o.o_d_id, o.o_c_id)) > 0) {
+            customer_order_map.at(CustomerOrderIndex(o.o_w_id, o.o_d_id, o.o_c_id)).second.push_back(o);
+        }
+    }
+
+    auto customer_order_orderline_map = map<OrderOrderlineIndex, CustomerOrderOrderlineItem>();
+    for (pair<CustomerOrderIndex, pair<Customer, vector<Order>>> c_o_item : customer_order_map) {
+        for (auto o : c_o_item.second.second) {
+            customer_order_orderline_map.insert(pair<OrderOrderlineIndex, CustomerOrderOrderlineItem>(
+                    OrderOrderlineIndex(o.o_w_id, o.o_d_id, o.o_id),
+                    CustomerOrderOrderlineItem(c_o_item.second.first, o, vector<Orderline>())
+            ));
+        }
+    }
+    for (auto ol : ORDERLINE_TABLE.get_rows()) {
+        if (customer_order_orderline_map.count(OrderOrderlineIndex(ol.ol_w_id, ol.ol_d_id, ol.ol_o_id)) > 0) {
+            get<2>(customer_order_orderline_map.at(OrderOrderlineIndex(ol.ol_w_id, ol.ol_d_id, ol.ol_o_id))).push_back(ol);
+        }
+    }
+
+    Numeric<6, 4> result = 0;
+    for (auto c_o_ol_hash_item : customer_order_orderline_map) {
+        for (Orderline ol : get<2>(c_o_ol_hash_item.second)) {
+            result = result + ol.ol_quantity.castLP4().castP2() * ol.ol_amount;
+        }
+    }
+
+    cout << "customer_price_query: " << result << endl;
+}
+
 void print_sizes() {
     cout << endl;
     cout << "Warehouse: " << WAREHOUSE_TABLE.size() << endl;
@@ -224,19 +278,47 @@ void oltp(Timestamp now) {
    }
 }
 
+
+atomic<bool> childRunning;
+
+static void SIGCHLD_handler(int /*sig*/) {
+    int status;
+    wait(&status);
+    // now the child with process id childPid is dead
+    childRunning = false;
+}
+
 int main(int argc, char const *argv[]) {
+    struct sigaction sa;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sa.sa_handler = SIGCHLD_handler;
+    sigaction(SIGCHLD, &sa, NULL);
 
     auto start = chrono::high_resolution_clock::now();
     read_tables();
     cout << "read tables " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() << "s" << endl;
 
+    customer_price_query();
+
     print_sizes();
     start = chrono::high_resolution_clock::now();
     for (int i = 0; i < 1000000; i++) {
+        if (!childRunning) {
+            childRunning = true;
+            pid_t pid = fork();
+            if (!pid) { // child
+                customer_price_query();
+                return 0;
+            }
+        }
         oltp(Timestamp(time(0)));
     }
     cout << "1000000 iterations " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() << "s" << endl;
     print_sizes();
 
+    customer_price_query();
     return 0;
 }
+
+
