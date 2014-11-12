@@ -57,7 +57,8 @@ static bool isColumnIdentifier(const string &str) {
     if (str == keyword::Select ||
         str == keyword::From ||
         str == keyword::Where ||
-        str == keyword::And
+        str == keyword::And ||
+        str.find_first_of("0123456789") == 0
     ) {
         return false;
     }
