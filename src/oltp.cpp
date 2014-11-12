@@ -1,30 +1,19 @@
 #include <cstdint>
 #include <ctime>
-#include <chrono>
 #include <string>
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <atomic>
 #include <signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "types.hpp"
-#include "tables_gen.hpp"
+#include "oltp.hpp"
 
 using namespace std;
 using namespace chrono;
 
 const int32_t warehouses = 5;
-WarehouseTable WAREHOUSE_TABLE = WarehouseTable();
-CustomerTable CUSTOMER_TABLE = CustomerTable();
-DistrictTable DISTRICT_TABLE = DistrictTable();
-OrderTable ORDER_TABLE = OrderTable();
-NeworderTable NEWORDER_TABLE = NeworderTable();
-ItemTable ITEM_TABLE = ItemTable();
-StockTable STOCK_TABLE = StockTable();
-OrderlineTable ORDERLINE_TABLE = OrderlineTable();
 
 int32_t urand(int32_t min, int32_t max) {
     return (random() % (max - min + 1)) + min;
@@ -42,40 +31,6 @@ int32_t urandexcept(int32_t min, int32_t max, int32_t v) {
 
 int32_t nurand(int32_t A, int32_t x, int32_t y) {
     return ((((random() % A) | (random() % (y - x + 1) + x)) + 42) % (y - x + 1)) + x;
-}
-
-template<typename T, typename Index>
-void read_file_to_table(char const *file_name, Table<T, Index> &table) {
-    string line;
-    ifstream warehouse_file(file_name);
-    if (warehouse_file.is_open()) {
-        while (getline(warehouse_file, line)) {
-            vector<string> column_data;
-            stringstream ss(line);
-            string cell;
-            while (getline(ss, cell, '|')) {
-                column_data.push_back(cell);
-            }
-
-            T row = T::from_row(column_data);
-
-            table.insert(row);
-        }
-        warehouse_file.close();
-    } else {
-        cerr << "Warehouse file doesn't exist!" << endl;
-    }
-}
-
-void read_tables() {
-    read_file_to_table<Warehouse>("../data/tpcc_warehouse.tbl", WAREHOUSE_TABLE);
-    read_file_to_table<Customer>("../data/tpcc_customer.tbl", CUSTOMER_TABLE);
-    read_file_to_table<District>("../data/tpcc_district.tbl", DISTRICT_TABLE);
-    read_file_to_table<Item>("../data/tpcc_item.tbl", ITEM_TABLE);
-    read_file_to_table<Neworder>("../data/tpcc_neworder.tbl", NEWORDER_TABLE);
-    read_file_to_table<Order>("../data/tpcc_order.tbl", ORDER_TABLE);
-    read_file_to_table<Orderline>("../data/tpcc_orderline.tbl", ORDERLINE_TABLE);
-    read_file_to_table<Stock>("../data/tpcc_stock.tbl", STOCK_TABLE);
 }
 
 
@@ -288,37 +243,27 @@ static void SIGCHLD_handler(int /*sig*/) {
     childRunning = false;
 }
 
-int main(int argc, char const *argv[]) {
+void benchmark() {
     struct sigaction sa;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sa.sa_handler = SIGCHLD_handler;
     sigaction(SIGCHLD, &sa, NULL);
 
-    auto start = chrono::high_resolution_clock::now();
-    read_tables();
-    cout << "read tables " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() << "s" << endl;
-
-    customer_price_query();
-
     print_sizes();
-    start = chrono::high_resolution_clock::now();
+    auto start = chrono::high_resolution_clock::now();
     for (int i = 0; i < 1000000; i++) {
         if (!childRunning) {
             childRunning = true;
             pid_t pid = fork();
             if (!pid) { // child
                 customer_price_query();
-                return 0;
+                return;
             }
         }
         oltp(Timestamp(time(0)));
     }
     cout << "1000000 iterations " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() << "s" << endl;
     print_sizes();
-
-    customer_price_query();
-    return 0;
 }
-
 

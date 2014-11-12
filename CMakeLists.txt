@@ -7,6 +7,12 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 set(CMAKE_CXX_COMPILER clang++)
 
+#set(CODEGEN_RELATIONAL_ALGEBRA_SOURCE_FILES
+#    codegen-relational-algebra/codegen.cpp
+#    codegen-relational-algebra/operator.hpp)
+#
+#add_executable(db-lab-codegen-relational-algebra ${CODEGEN_RELATIONAL_ALGEBRA_SOURCE_FILES})
+
 set(CODEGEN_SOURCE_FILES
     codegen/codegen.cpp
     codegen/Parser.hpp
@@ -18,13 +24,19 @@ set(CODEGEN_SOURCE_FILES
 add_executable(db-lab-codegen ${CODEGEN_SOURCE_FILES})
 
 set(SOURCE_FILES
+    src/main.cpp
+    src/oltp.hpp
     src/oltp.cpp
+    src/parser.hpp
+    src/parser.cpp
+    src/operator.hpp
     src/types.hpp
     src/table.hpp
     src/tables_gen.hpp
     src/types.cpp)
 
 add_executable(db-lab ${SOURCE_FILES})
+target_link_libraries(db-lab readline)
 
 add_custom_target(codegen
   COMMAND db-lab-codegen ../data/schema.sql

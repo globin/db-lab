@@ -1,5 +1,4 @@
-#ifndef H_Parser_hpp
-#define H_Parser_hpp
+#pragma once
 
 #include <exception>
 #include <string>
@@ -48,5 +47,3 @@ struct Parser {
 private:
     void nextToken(unsigned line, const std::string &token, Schema &s);
 };
-
-#endif

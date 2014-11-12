@@ -38,7 +38,7 @@ public:
         return rows.at(key.second);
     }
 
-    vector<Data> get_rows() {
+    vector<Data> &get_rows() {
         return rows;
     }
 
