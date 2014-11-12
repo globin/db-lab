@@ -20,9 +20,7 @@ public:
     virtual vector<IU*> requiredAttributes() = 0;
     virtual vector<IU*> producedAttributes() = 0;
 
-    static Operator* from_query(Query query) {
-
-    }
+    static Operator* from_query(Query& query);
 };
 
 class Selection : public Operator {
@@ -145,3 +143,19 @@ public:
         return res;
     }
 };
+
+Operator* Operator::from_query(Query& query) {
+    tuple<string, string> base_table = query.tables[0];
+    string base_table_name, base_table_alias;
+    tie(base_table_name, base_table_alias) = base_table;
+
+    vector<IU*> attrs;
+    for (string column : query.select_columns) {
+        replace(column.begin(), column.end(), '.', '_');
+        attrs.push_back(new IU {.type = "Integer", .name = column});
+    }
+    auto table_scan = new TableScan(base_table_name, attrs);
+    auto print = new Print(table_scan, attrs);
+
+    return print;
+}

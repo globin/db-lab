@@ -69,7 +69,8 @@ void repl() {
         try {
             auto parser = Parser(sql_line);
             auto query = parser.parse();
-//            auto ra_tree = Operator::from_query(*query);
+            auto ra_tree = Operator::from_query(*query);
+            ra_tree->produce();
         } catch (ParserError e) {
             cerr << "Parse Error: " << e.what() << endl;
         }
