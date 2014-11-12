@@ -70,7 +70,7 @@ static bool isInt(const string &str) {
 
 void Parser::nextToken(const string &token, Query &query) {
     if (getenv("DEBUG"))
-        cerr << static_cast<int>(state) << ": " << token << std::endl;
+        cerr << static_cast<int>(state) << ": " << token << " " << isIdentifier(token) << std::endl;
     if (token.empty())
         return;
 //    string tok;
@@ -117,6 +117,7 @@ void Parser::nextToken(const string &token, Query &query) {
             } else {
                 throw ParserError("Expected table alias, found '" + token + "'");
             }
+            break;
         case State::TableAlias:
             if (tok.size() == 1 && tok[0] == literal::Comma) {
                 state = State::TableSeperator;
