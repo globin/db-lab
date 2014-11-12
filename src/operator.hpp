@@ -148,14 +148,26 @@ Operator* Operator::from_query(Query& query) {
     tuple<string, string> base_table = query.tables[0];
     string base_table_name, base_table_alias;
     tie(base_table_name, base_table_alias) = base_table;
+    query.tables.erase(query.tables.begin());
 
     vector<IU*> attrs;
     for (string column : query.select_columns) {
         replace(column.begin(), column.end(), '.', '_');
         attrs.push_back(new IU {.type = "Integer", .name = column});
     }
-    auto table_scan = new TableScan(base_table_name, attrs);
-    auto print = new Print(table_scan, attrs);
+    Operator* op = new TableScan(base_table_name, attrs);
 
-    return print;
+    for (tuple<string, string> selection : query.selections) {
+        string lhs, rhs;
+        int32_t rhs_int;
+        tie(lhs, rhs) = selection;
+        std::stringstream strstream;
+        strstream << rhs;
+        strstream >> rhs_int;
+
+        op = new Selection(op, attrs[0], rhs_int);
+    }
+    op = new Print(op, attrs);
+
+    return op;
 }
