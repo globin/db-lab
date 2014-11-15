@@ -13,7 +13,7 @@ using namespace std;
 using namespace chrono;
 
 template<typename T, typename Index>
-void read_file_to_table(char const *file_name, Table<T, Index> &table) {
+void read_file_to_table(const string &file_name, Table<T, Index> &table) {
     string line;
     ifstream warehouse_file(file_name);
     if (warehouse_file.is_open()) {
@@ -35,20 +35,20 @@ void read_file_to_table(char const *file_name, Table<T, Index> &table) {
     }
 }
 
-void read_tables() {
-    read_file_to_table<Warehouse>("../data/tpcc_warehouse.tbl", WAREHOUSE_TABLE);
-    read_file_to_table<Customer>("../data/tpcc_customer.tbl", CUSTOMER_TABLE);
-    read_file_to_table<District>("../data/tpcc_district.tbl", DISTRICT_TABLE);
-    read_file_to_table<Item>("../data/tpcc_item.tbl", ITEM_TABLE);
-    read_file_to_table<Neworder>("../data/tpcc_neworder.tbl", NEWORDER_TABLE);
-    read_file_to_table<Order>("../data/tpcc_order.tbl", ORDER_TABLE);
-    read_file_to_table<Orderline>("../data/tpcc_orderline.tbl", ORDERLINE_TABLE);
-    read_file_to_table<Stock>("../data/tpcc_stock.tbl", STOCK_TABLE);
+void read_tables(const string &base_path) {
+    read_file_to_table<warehouse>(base_path + "/tpcc_warehouse.tbl", WAREHOUSE_TABLE);
+    read_file_to_table<customer>(base_path + "/tpcc_customer.tbl", CUSTOMER_TABLE);
+    read_file_to_table<district>(base_path + "/tpcc_district.tbl", DISTRICT_TABLE);
+    read_file_to_table<item>(base_path + "/tpcc_item.tbl", ITEM_TABLE);
+    read_file_to_table<neworder>(base_path + "/tpcc_neworder.tbl", NEWORDER_TABLE);
+    read_file_to_table<order>(base_path + "/tpcc_order.tbl", ORDER_TABLE);
+    read_file_to_table<orderline>(base_path + "/tpcc_orderline.tbl", ORDERLINE_TABLE);
+    read_file_to_table<stock>(base_path + "/tpcc_stock.tbl", STOCK_TABLE);
 }
 
-static char *line_read = (char *)NULL;
+static char* line_read = (char *)NULL;
 
-char *rl_gets() {
+char* rl_gets() {
     if (line_read) {
         free(line_read);
         line_read = (char *)NULL;
@@ -78,9 +78,13 @@ void repl() {
 }
 
 int main(int argc, char const *argv[]) {
+    if (argc != 2) {
+        cerr << "Usage: " << argv[0] << " {path_to_table_files}" << endl;
+        return 1;
+    }
 
-    auto start = chrono::high_resolution_clock::now();
-//    read_tables();
+    auto start = high_resolution_clock::now();
+    read_tables(argv[1]);
     cout << "read tables " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() << "s" << endl;
 
     while (true) {

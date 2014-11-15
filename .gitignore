@@ -4,4 +4,6 @@ Makefile
 cmake_install.cmake
 db-lab
 build
+src/tables_gen.hpp
+query-codegen
 

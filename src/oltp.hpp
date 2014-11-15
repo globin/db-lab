@@ -3,13 +3,13 @@
 #include "table.hpp"
 #include "tables_gen.hpp"
 
-static WarehouseTable WAREHOUSE_TABLE = WarehouseTable();
-static CustomerTable CUSTOMER_TABLE = CustomerTable();
-static DistrictTable DISTRICT_TABLE = DistrictTable();
-static OrderTable ORDER_TABLE = OrderTable();
-static NeworderTable NEWORDER_TABLE = NeworderTable();
-static ItemTable ITEM_TABLE = ItemTable();
-static StockTable STOCK_TABLE = StockTable();
-static OrderlineTable ORDERLINE_TABLE = OrderlineTable();
+static warehouseTable WAREHOUSE_TABLE = warehouseTable();
+static customerTable CUSTOMER_TABLE = customerTable();
+static districtTable DISTRICT_TABLE = districtTable();
+static orderTable ORDER_TABLE = orderTable();
+static neworderTable NEWORDER_TABLE = neworderTable();
+static itemTable ITEM_TABLE = itemTable();
+static stockTable STOCK_TABLE = stockTable();
+static orderlineTable ORDERLINE_TABLE = orderlineTable();
 
 void benchmark();

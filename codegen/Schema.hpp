@@ -22,7 +22,6 @@ struct Schema {
         std::vector<unsigned> primaryKey;
 
         Relation(std::string name) {
-            name[0] = toupper(name[0]);
             this->name = name;
         }
     };

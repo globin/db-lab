@@ -13,7 +13,7 @@
 using namespace std;
 using namespace chrono;
 
-const int32_t warehouses = 5;
+const int32_t WAREHOUSES = 5;
 
 int32_t urand(int32_t min, int32_t max) {
     return (random() % (max - min + 1)) + min;
@@ -52,9 +52,9 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
         if (w_id != supware[i]) all_local=0;
     }
 
-    ORDER_TABLE.insert(Order(o_id, Integer(w_id), Integer(d_id), Integer(c_id), now, Integer(0),
+    ORDER_TABLE.insert(order(o_id, Integer(w_id), Integer(d_id), Integer(c_id), now, Integer(0),
             Numeric<2, 0>(ol_cnt), Numeric<1, 0>(all_local)));
-    NEWORDER_TABLE.insert(Neworder(Integer(w_id), Integer(d_id), o_id));
+    NEWORDER_TABLE.insert(neworder(Integer(w_id), Integer(d_id), o_id));
 
     for (int i = 0; i < ol_cnt; i++) {
         auto i_price = ITEM_TABLE.lookup(Integer(itemid[i])).i_price;
@@ -104,7 +104,7 @@ void newOrder(int32_t w_id, int32_t d_id, int32_t c_id, int32_t ol_cnt, int32_t 
                 (Numeric<4, 4>(1) - c_discount).castLP1().castP2().castP2()).castLP1().castM2().castM2().castM2()
                 .castM2().castM2().castM2().castM2();
         ORDERLINE_TABLE.insert(
-                Orderline(o_id, Integer(d_id), Integer(w_id), Integer(i + 1), Integer(itemid[i]), Integer(supware[i]),
+                orderline(o_id, Integer(d_id), Integer(w_id), Integer(i + 1), Integer(itemid[i]), Integer(supware[i]),
                         Timestamp(0), Numeric<2, 0>(qty[i]), ol_amount, s_dist));
     }
 }
@@ -121,7 +121,7 @@ void newOrderRandom(Timestamp now, int32_t w_id) {
         if (urand(1, 100) > 1)
             supware[i] = w_id;
         else
-            supware[i] = urandexcept(1, warehouses, w_id);
+            supware[i] = urandexcept(1, WAREHOUSES, w_id);
         itemid[i] = nurand(8191, 1, 100000);
         qty[i] = urand(1, 10);
     }
@@ -134,7 +134,7 @@ void delivery(Integer w_id, Integer o_carrier_id, Timestamp now) {
          auto neworder = NEWORDER_TABLE.select(
                 tuple<Integer, Integer, Integer>(w_id, d_id, Integer(0)),
                 tuple<Integer, Integer, Integer>(w_id, d_id + Integer(1), Integer(0)),
-                [](const Neworder& data) { return true; } // equivalent to min
+                [](const struct neworder& data) { return true; } // equivalent to min
          );
          if (!neworder) continue;
 
@@ -152,7 +152,7 @@ void delivery(Integer w_id, Integer o_carrier_id, Timestamp now) {
              auto ol = ORDERLINE_TABLE.select(
                  tuple<Integer, Integer, Integer, Integer>(w_id, d_id, o_id, 0),
                  tuple<Integer, Integer, Integer, Integer>(w_id, d_id, o_id + 1, 0),
-                 [ol_number](const Orderline& data) { return data.ol_number == ol_number; }
+                 [ol_number](const orderline& data) { return data.ol_number == ol_number; }
              );
              ol_total = ol_total + ol->ol_amount;
              ol->ol_delivery_d = now;
@@ -164,18 +164,18 @@ void delivery(Integer w_id, Integer o_carrier_id, Timestamp now) {
 
 typedef tuple<Integer, Integer, Integer> CustomerOrderIndex;
 typedef tuple<Integer, Integer, Integer> OrderOrderlineIndex;
-typedef tuple<Customer, Order, vector<Orderline>> CustomerOrderOrderlineItem;
+typedef tuple<customer, order, vector<orderline>> CustomerOrderOrderlineItem;
 void customer_price_query() {
     auto customers = CUSTOMER_TABLE.get_rows();
     customers.erase(
-        remove_if(customers.begin(), customers.end(), [](Customer c) { return c.c_last.value[0] != 'B'; }),
+        remove_if(customers.begin(), customers.end(), [](customer c) { return c.c_last.value[0] != 'B'; }),
         customers.end()
     );
 
-    auto customer_order_map = map<CustomerOrderIndex, pair<Customer, vector<Order>>>();
+    auto customer_order_map = map<CustomerOrderIndex, pair<customer, vector<order>>>();
     for (auto c : customers) {
-        customer_order_map.insert(pair<CustomerOrderIndex, pair<Customer, vector<Order>>>(
-                CustomerOrderIndex(c.c_w_id, c.c_d_id, c.c_id), pair<Customer, vector<Order>>(c, vector<Order>())));
+        customer_order_map.insert(pair<CustomerOrderIndex, pair<customer, vector<order>>>(
+                CustomerOrderIndex(c.c_w_id, c.c_d_id, c.c_id), pair<customer, vector<order>>(c, vector<order>())));
     }
     for (auto o : ORDER_TABLE.get_rows()) {
         if (customer_order_map.count(CustomerOrderIndex(o.o_w_id, o.o_d_id, o.o_c_id)) > 0) {
@@ -184,11 +184,11 @@ void customer_price_query() {
     }
 
     auto customer_order_orderline_map = map<OrderOrderlineIndex, CustomerOrderOrderlineItem>();
-    for (pair<CustomerOrderIndex, pair<Customer, vector<Order>>> c_o_item : customer_order_map) {
+    for (pair<CustomerOrderIndex, pair<customer, vector<order>>> c_o_item : customer_order_map) {
         for (auto o : c_o_item.second.second) {
             customer_order_orderline_map.insert(pair<OrderOrderlineIndex, CustomerOrderOrderlineItem>(
                     OrderOrderlineIndex(o.o_w_id, o.o_d_id, o.o_id),
-                    CustomerOrderOrderlineItem(c_o_item.second.first, o, vector<Orderline>())
+                    CustomerOrderOrderlineItem(c_o_item.second.first, o, vector<orderline>())
             ));
         }
     }
@@ -200,7 +200,7 @@ void customer_price_query() {
 
     Numeric<6, 4> result = 0;
     for (auto c_o_ol_hash_item : customer_order_orderline_map) {
-        for (Orderline ol : get<2>(c_o_ol_hash_item.second)) {
+        for (orderline ol : get<2>(c_o_ol_hash_item.second)) {
             result = result + ol.ol_quantity.castLP4().castP2() * ol.ol_amount;
         }
     }
@@ -227,9 +227,9 @@ void deliveryRandom(Timestamp now, int32_t warehouses) {
 void oltp(Timestamp now) {
    int rnd=urand(1,100);
    if (rnd<=10) {
-      deliveryRandom(now, urand(1, warehouses));
+      deliveryRandom(now, urand(1, WAREHOUSES));
    } else {
-      newOrderRandom(now, urand(1, warehouses));
+      newOrderRandom(now, urand(1, WAREHOUSES));
    }
 }
 
