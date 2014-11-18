@@ -32,7 +32,6 @@ set(SOURCE_FILES
     src/operator.hpp
     src/types.hpp
     src/table.hpp
-    src/tables_gen.hpp
     src/types.cpp)
 
 add_executable(db-lab ${SOURCE_FILES})
