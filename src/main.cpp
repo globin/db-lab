@@ -4,6 +4,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <chrono>
+#include <dlfcn.h>
 
 #include "oltp.hpp"
 #include "parser.hpp"
@@ -63,14 +64,57 @@ char* rl_gets() {
     return line_read;
 }
 
+void generate_header(ostream& os) {
+    os << "#include <iostream>" << endl;
+    os << "#include \"/home/robin/dev/db-lab/code/src/tables_gen.hpp\"" << endl;
+    os << "using namespace std;" << endl;
+    os << "extern \"C\"" << endl;
+    os << "void run_query(Tables& tables) {" << endl;
+}
+void generate_footer(ostream& os) {
+    os << "}" << endl;
+}
+void compile_query() {
+    system("clang++ -fPIC -shared /tmp/query-gen.cpp -std=c++1y -Wall -stdlib=libc++ -o /tmp/query-gen.so");
+}
+void run_query() {
+   void* handle = dlopen("/tmp/query-gen.so", RTLD_NOW);
+   if (!handle) {
+      cerr << "error: " << dlerror() << endl;
+      exit(1);
+   }
+
+   auto query = reinterpret_cast<void(*)(Tables&)>(dlsym(handle, "run_query"));
+   if (!query) {
+      cerr << "error: " << dlerror() << endl;
+      exit(1);
+   }
+
+   query(TABLES);
+
+   if (dlclose(handle)) {
+      cerr << "error: " << dlerror() << endl;
+      exit(1);
+   }
+}
+
+
 void repl() {
     char* sql_line = rl_gets();
+    auto filename = "/tmp/query-gen.cpp";
+    ofstream os = ofstream(filename);
+
     if (sql_line) {
         try {
             auto parser = Parser(sql_line);
             auto query = parser.parse();
-            auto ra_tree = Operator::from_query(*query);
+
+            generate_header(os);
+            auto ra_tree = Operator::from_query(*query, &os);
             ra_tree->produce();
+            generate_footer(os);
+            compile_query();
+            run_query();
         } catch (ParserError e) {
             cerr << "Parse Error: " << e.what() << endl;
         }

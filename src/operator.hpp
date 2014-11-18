@@ -10,9 +10,12 @@ using namespace std;
 struct IU {
     string name;
     string type;
+    string member_name;
 };
 
 class Operator {
+protected:
+    ostream* os;
 public:
     Operator* parent;
     virtual void produce() = 0;
@@ -20,22 +23,26 @@ public:
     virtual vector<IU*> requiredAttributes() = 0;
     virtual vector<IU*> producedAttributes() = 0;
 
-    static Operator* from_query(Query& query);
+    static Operator* from_query(Query& query, ostream* os);
 };
 
 class Selection : public Operator {
-private:
+protected:
     Operator* input;
     IU* lhs;
     int32_t rhs;
 public:
-    Selection(Operator* input, IU* lhs, int32_t rhs) : input(input), lhs(lhs), rhs(rhs) {
+    Selection(Operator* input, IU* lhs, int32_t rhs, ostream* os) : input(input), lhs(lhs), rhs(rhs) {
+        this->os = os;
         input->parent = this;
     }
 
     vector<IU*> requiredAttributes() {
         auto attrs = parent->requiredAttributes();
-        attrs.push_back(lhs);
+        if (find(attrs.begin(), attrs.end(), lhs) == attrs.end()) {
+            attrs.push_back(lhs);
+        }
+
         return attrs;
     }
 
@@ -47,9 +54,9 @@ public:
         input->produce();
     }
     void consume(Operator* source) {
-        cout << "if (" << lhs->name << " == Integer(" << rhs << ")) {" << endl;
+        *os << "if (" << lhs->name << " == Integer(" << rhs << ")) {" << endl;
         parent->consume(this);
-        cout << "}" << endl;
+        *os << "}" << endl;
     }
 };
 
@@ -59,15 +66,18 @@ protected:
     string table_name;
 
 public:
-    TableScan(string table_name, vector<IU*> attributes) : attributes(attributes), table_name(table_name) {}
+    TableScan(string table_name, vector<IU*> attributes, ostream* os) : attributes(attributes), table_name(table_name) {
+        this->os = os;
+    }
 
     void produce() {
-        cout << "for (" << table_name << " data_row : " << table_name << "Table.get_rows()) {" << endl;
+        *os << "for (" << table_name << " data_row : tables." << table_name << "Table.get_rows()) {" << endl;
+
         for (auto attribute : requiredAttributes()) {
-            cout << attribute->type << " " << attribute->name << " = data_row." << attribute->name << ";" << endl;
+            *os << attribute->type << " " << attribute->name << " = data_row." << attribute->member_name << ";" << endl;
         }
         parent->consume(this);
-        cout << "}" << endl;
+        *os << "}" << endl;
     }
     void consume(Operator* source) {}
 
@@ -80,13 +90,14 @@ public:
 };
 
 class Print : public Operator {
-private:
+protected:
     Operator* input;
     vector<IU*> attributes;
 
 public:
-    Print(Operator* input, vector<IU*> attributes) : input(input), attributes(attributes) {
+    Print(Operator* input, vector<IU*> attributes, ostream* os) : input(input), attributes(attributes) {
         input->parent = this;
+        this->os = os;
     };
 
     void produce() {
@@ -95,7 +106,7 @@ public:
 
     void consume(Operator* source) {
         for (auto attribute : attributes) {
-            cout << "cout << " << attribute->name << " << endl;" << endl;
+            *os << "cout << " << attribute->name << " << endl;" << endl;
         }
     }
 
@@ -112,8 +123,10 @@ class Join : public Operator {
 protected:
     Operator* lhs;
     Operator* rhs;
+
 public:
-    Join(Operator* lhs, Operator* rhs) : lhs(lhs), rhs(rhs) {
+    Join(Operator* lhs, Operator* rhs, ostream* os) : lhs(lhs), rhs(rhs) {
+        this->os = os;
         lhs->parent = this;
         rhs->parent = this;
     }
@@ -144,7 +157,7 @@ public:
     }
 };
 
-Operator* Operator::from_query(Query& query) {
+Operator* Operator::from_query(Query& query, ostream* os) {
     tuple<string, string> base_table = query.tables[0];
     string base_table_name, base_table_alias;
     tie(base_table_name, base_table_alias) = base_table;
@@ -152,22 +165,26 @@ Operator* Operator::from_query(Query& query) {
 
     vector<IU*> attrs;
     for (string column : query.select_columns) {
-        replace(column.begin(), column.end(), '.', '_');
-        attrs.push_back(new IU {.type = "Integer", .name = column});
+        string var_name = string(column);
+        replace(var_name.begin(), var_name.end(), '.', '_');
+
+        column.erase(column.begin(), ++find(column.begin(), column.end(), '.'));
+
+        attrs.push_back(new IU {.type = "Integer", .name = var_name, .member_name = column});
     }
-    Operator* op = new TableScan(base_table_name, attrs);
+    Operator* op = new TableScan(base_table_name, attrs, os);
 
     for (tuple<string, string> selection : query.selections) {
         string lhs, rhs;
         int32_t rhs_int;
         tie(lhs, rhs) = selection;
-        std::stringstream strstream;
+        stringstream strstream;
         strstream << rhs;
         strstream >> rhs_int;
 
-        op = new Selection(op, attrs[0], rhs_int);
+        op = new Selection(op, attrs[0], rhs_int, os);
     }
-    op = new Print(op, attrs);
+    op = new Print(op, attrs, os);
 
     return op;
 }

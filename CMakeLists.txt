@@ -35,7 +35,7 @@ set(SOURCE_FILES
     src/types.cpp)
 
 add_executable(db-lab ${SOURCE_FILES})
-target_link_libraries(db-lab readline)
+target_link_libraries(db-lab readline dl)
 
 add_custom_target(codegen
   COMMAND db-lab-codegen ../data/schema.sql
