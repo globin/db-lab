@@ -122,6 +122,8 @@ void Parser::nextToken(const string &token, Query &query) {
         case State::TableAlias:
             if (tok.size() == 1 && tok[0] == literal::Comma) {
                 state = State::TableSeperator;
+            } else if (tok.size() == 1 && tok[0] == literal::Semicolon) {
+                state = State::Semicolon;
             } else if (tok == keyword::Where) {
                 state = State::Where;
             } else {

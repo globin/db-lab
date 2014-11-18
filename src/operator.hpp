@@ -140,6 +140,8 @@ public:
         if (source == lhs) {
 //            print materialize tuple in hash table;
         } else {
+//            *os << "for (auto elem : hashtable) {"
+//                    "    "
 //            print for each match in hashtable[" +a.joinattr+\]";
             parent->consume(this);
         }
@@ -163,16 +165,16 @@ Operator* Operator::from_query(Query& query, ostream* os) {
     tie(base_table_name, base_table_alias) = base_table;
     query.tables.erase(query.tables.begin());
 
-    vector<IU*> attrs;
+    vector<IU*> print_attrs;
     for (string column : query.select_columns) {
         string var_name = string(column);
         replace(var_name.begin(), var_name.end(), '.', '_');
 
         column.erase(column.begin(), ++find(column.begin(), column.end(), '.'));
 
-        attrs.push_back(new IU {.type = "Integer", .name = var_name, .member_name = column});
+        print_attrs.push_back(new IU {.type = "auto", .name = var_name, .member_name = column});
     }
-    Operator* op = new TableScan(base_table_name, attrs, os);
+    Operator* op = new TableScan(base_table_name, print_attrs, os);
 
     for (tuple<string, string> selection : query.selections) {
         string lhs, rhs;
@@ -182,9 +184,24 @@ Operator* Operator::from_query(Query& query, ostream* os) {
         strstream << rhs;
         strstream >> rhs_int;
 
-        op = new Selection(op, attrs[0], rhs_int, os);
+        string var_name = string(lhs);
+        replace(var_name.begin(), var_name.end(), '.', '_');
+        lhs.erase(lhs.begin(), ++find(lhs.begin(), lhs.end(), '.'));
+
+        IU* lhs_attr = nullptr;
+        for (IU* attr : print_attrs) {
+            if (attr->name == var_name)  {
+                lhs_attr = attr;
+                break;
+            }
+        }
+        if (lhs_attr == nullptr) {
+            lhs_attr = new IU {.type = "auto", .name = var_name, .member_name = lhs};
+        }
+
+        op = new Selection(op, lhs_attr, rhs_int, os);
     }
-    op = new Print(op, attrs, os);
+    op = new Print(op, print_attrs, os);
 
     return op;
 }

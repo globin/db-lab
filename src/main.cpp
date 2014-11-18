@@ -3,7 +3,6 @@
 #include <iostream>
 #include <readline/readline.h>
 #include <readline/history.h>
-#include <chrono>
 #include <dlfcn.h>
 
 #include "oltp.hpp"
@@ -75,7 +74,7 @@ void generate_footer(ostream& os) {
     os << "}" << endl;
 }
 void compile_query() {
-    system("clang++ -fPIC -shared /tmp/query-gen.cpp -std=c++1y -Wall -stdlib=libc++ -o /tmp/query-gen.so");
+    system("clang++ -fPIC -shared /tmp/query-gen.cpp -std=c++1y -Wall -Wno-unknown-pragmas -stdlib=libc++ -o /tmp/query-gen.so");
 }
 void run_query() {
    void* handle = dlopen("/tmp/query-gen.so", RTLD_NOW);
