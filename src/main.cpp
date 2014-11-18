@@ -36,14 +36,14 @@ void read_file_to_table(const string &file_name, Table<T, Index> &table) {
 }
 
 void read_tables(const string &base_path) {
-    read_file_to_table<warehouse>(base_path + "/tpcc_warehouse.tbl", WAREHOUSE_TABLE);
-    read_file_to_table<customer>(base_path + "/tpcc_customer.tbl", CUSTOMER_TABLE);
-    read_file_to_table<district>(base_path + "/tpcc_district.tbl", DISTRICT_TABLE);
-    read_file_to_table<item>(base_path + "/tpcc_item.tbl", ITEM_TABLE);
-    read_file_to_table<neworder>(base_path + "/tpcc_neworder.tbl", NEWORDER_TABLE);
-    read_file_to_table<order>(base_path + "/tpcc_order.tbl", ORDER_TABLE);
-    read_file_to_table<orderline>(base_path + "/tpcc_orderline.tbl", ORDERLINE_TABLE);
-    read_file_to_table<stock>(base_path + "/tpcc_stock.tbl", STOCK_TABLE);
+    read_file_to_table<warehouse>(base_path + "/tpcc_warehouse.tbl", TABLES.warehouseTable);
+    read_file_to_table<customer>(base_path + "/tpcc_customer.tbl", TABLES.customerTable);
+    read_file_to_table<district>(base_path + "/tpcc_district.tbl", TABLES.districtTable);
+    read_file_to_table<item>(base_path + "/tpcc_item.tbl", TABLES.itemTable);
+    read_file_to_table<neworder>(base_path + "/tpcc_neworder.tbl", TABLES.neworderTable);
+    read_file_to_table<order>(base_path + "/tpcc_order.tbl", TABLES.orderTable);
+    read_file_to_table<orderline>(base_path + "/tpcc_orderline.tbl", TABLES.orderlineTable);
+    read_file_to_table<stock>(base_path + "/tpcc_stock.tbl", TABLES.stockTable);
 }
 
 static char* line_read = (char *)NULL;
@@ -79,7 +79,7 @@ void repl() {
 
 int main(int argc, char const *argv[]) {
     if (argc != 2) {
-        cerr << "Usage: " << argv[0] << " {path_to_table_files}" << endl;
+        cerr << "Usage: " << argv[0] << " path_to_table_files" << endl;
         return 1;
     }
 

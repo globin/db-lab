@@ -147,5 +147,12 @@ std::string Schema::toCppHeader() const {
         generate_relation(out, rel);
         generate_table_type(out, rel);
     }
+
+    out << "struct Tables {" << std::endl;
+    for (const Schema::Relation &rel : relations) {
+        out << "    " << rel.name << "Table " << rel.name << "Table;" << std::endl;
+    }
+    out << "};" << std::endl;
+
     return out.str();
 }
