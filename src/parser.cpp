@@ -156,12 +156,12 @@ void Parser::nextToken(const string &token, Query &query) {
             state = State::PredicateRHS;
             break;
         case State::PredicateRHS:
-            if (tok.size() == 1 && tok[0] == literal::Comma)
-                state = State::PredicateLHS;
+            if (tok == keyword::And)
+                state = State::Where;
             else if (tok.size() == 1 && tok[0] == literal::Semicolon)
                 state = State::Semicolon;
             else
-                throw ParserError("Expected ',' or ';', found '" + token + "'");
+                throw ParserError("Expected 'AND' or ';', found '" + token + "'");
             break;
         case State::Semicolon:
             break;

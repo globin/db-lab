@@ -11,6 +11,15 @@ struct IU {
     string name;
     string type;
     string member_name;
+
+    IU(string name, string type) : type(type) {
+        string var_name = string(name);
+        replace(var_name.begin(), var_name.end(), '.', '_');
+        this->name = var_name;
+
+        name.erase(name.begin(), ++find(name.begin(), name.end(), '.'));
+        this->member_name = name;
+    }
 };
 
 class Operator {
@@ -138,12 +147,16 @@ public:
 
     void consume(Operator* source) {
         if (source == lhs) {
+            *os << "for (auto data_row : tables.left_table_name) {" << endl;
+                *os << "hash_table.emplace(hash(attrs), tuple<>(attrs));" << endl;
+            *os << "}";
 //            print materialize tuple in hash table;
         } else {
-//            *os << "for (auto elem : hashtable) {"
-//                    "    "
 //            print for each match in hashtable[" +a.joinattr+\]";
+            *os << "auto range = hash_table.equal_range(hash(attrs));" << endl;
+            *os << "for (auto iter = range.first; iter != range.second; iter++) {" << endl;
             parent->consume(this);
+            *os << "}" << endl;
         }
     }
 
@@ -167,14 +180,14 @@ Operator* Operator::from_query(Query& query, ostream* os) {
 
     vector<IU*> print_attrs;
     for (string column : query.select_columns) {
-        string var_name = string(column);
-        replace(var_name.begin(), var_name.end(), '.', '_');
-
-        column.erase(column.begin(), ++find(column.begin(), column.end(), '.'));
-
-        print_attrs.push_back(new IU {.type = "auto", .name = var_name, .member_name = column});
+        print_attrs.push_back(new IU(column, "auto"));
     }
     Operator* op = new TableScan(base_table_name, print_attrs, os);
+
+    for (tuple<string, string> table : query.tables) {
+        Operator* op = new TableScan(base_table_name, print_attrs, os);
+
+    }
 
     for (tuple<string, string> selection : query.selections) {
         string lhs, rhs;
@@ -186,7 +199,6 @@ Operator* Operator::from_query(Query& query, ostream* os) {
 
         string var_name = string(lhs);
         replace(var_name.begin(), var_name.end(), '.', '_');
-        lhs.erase(lhs.begin(), ++find(lhs.begin(), lhs.end(), '.'));
 
         IU* lhs_attr = nullptr;
         for (IU* attr : print_attrs) {
@@ -196,7 +208,7 @@ Operator* Operator::from_query(Query& query, ostream* os) {
             }
         }
         if (lhs_attr == nullptr) {
-            lhs_attr = new IU {.type = "auto", .name = var_name, .member_name = lhs};
+            lhs_attr = new IU(lhs, "auto");
         }
 
         op = new Selection(op, lhs_attr, rhs_int, os);
