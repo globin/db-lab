@@ -105,6 +105,7 @@ void repl() {
 
     if (sql_line) {
         try {
+//            auto parser = Parser("select w.w_id from district d, warehouse w where d.d_id=1 and d.d_w_id = w.w_id;");
             auto parser = Parser(sql_line);
             auto query = parser.parse();
 

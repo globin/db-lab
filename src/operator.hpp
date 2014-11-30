@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <set>
 #include "parser.hpp"
 
 using namespace std;
@@ -17,8 +18,29 @@ struct IU {
         replace(var_name.begin(), var_name.end(), '.', '_');
         this->name = var_name;
 
-        name.erase(name.begin(), ++find(name.begin(), name.end(), '.'));
+        name.erase(name.begin(), ++::find(name.begin(), name.end(), '.'));
         this->member_name = name;
+    }
+
+    static IU* find(const set<IU*>& ius, string iu_str) {
+        replace(iu_str.begin(), iu_str.end(), '.', '_');
+
+        for (IU* iu : ius) {
+            if (iu->name == iu_str) {
+                return iu;
+            }
+        }
+        throw "no matching attr " + iu_str;
+    }
+
+    static set<IU*> find_multiple(const set<IU*>& ius, vector<string> iu_strs) {
+        set<IU*> res;
+
+        for (auto iu_str : iu_strs) {
+            res.insert(IU::find(ius, iu_str));
+        }
+
+        return res;
     }
 };
 
@@ -29,8 +51,8 @@ public:
     Operator* parent;
     virtual void produce() = 0;
     virtual void consume(Operator* source) = 0;
-    virtual vector<IU*> requiredAttributes() = 0;
-    virtual vector<IU*> producedAttributes() = 0;
+    virtual set<IU*> requiredAttributes() = 0;
+    virtual set<IU*> producedAttributes() = 0;
 
     static Operator* from_query(Query& query, ostream* os);
 };
@@ -46,16 +68,20 @@ public:
         input->parent = this;
     }
 
-    vector<IU*> requiredAttributes() {
-        auto attrs = parent->requiredAttributes();
+    set<IU*> requiredAttributes() {
+        set<IU*> attrs;
+        if (parent != nullptr) {
+            attrs = parent->requiredAttributes();
+        }
+
         if (find(attrs.begin(), attrs.end(), lhs) == attrs.end()) {
-            attrs.push_back(lhs);
+            attrs.insert(lhs);
         }
 
         return attrs;
     }
 
-    vector<IU*> producedAttributes() {
+    set<IU*> producedAttributes() {
         return input->producedAttributes();
     }
 
@@ -71,29 +97,40 @@ public:
 
 class TableScan : public Operator {
 protected:
-    vector<IU*> attributes;
+    set<IU*> attributes;
     string table_name;
 
 public:
-    TableScan(string table_name, vector<IU*> attributes, ostream* os) : attributes(attributes), table_name(table_name) {
+    TableScan(tuple<string, string> table, vector<string> attributes, ostream* os) {
+        string table_alias;
+
         this->os = os;
+        tie(this->table_name, table_alias) = table;
+
+        for (auto attr : attributes) {
+            if (attr.substr(0, table_alias.size() + 1) == table_alias + ".") {
+                this->attributes.insert(new IU(attr, "Integer"));
+            }
+        }
     }
 
     void produce() {
         *os << "for (" << table_name << " data_row : tables." << table_name << "Table.get_rows()) {" << endl;
 
         for (auto attribute : requiredAttributes()) {
-            *os << attribute->type << " " << attribute->name << " = data_row." << attribute->member_name << ";" << endl;
+            if (find(attributes.begin(), attributes.end(), attribute) != attributes.end()) {
+                *os << attribute->type << " " << attribute->name << " = data_row." << attribute->member_name << ";" << endl;
+            }
         }
         parent->consume(this);
         *os << "}" << endl;
     }
     void consume(Operator* source) {}
 
-    vector<IU*> requiredAttributes() {
+    set<IU*> requiredAttributes() {
         return parent->requiredAttributes();
     }
-    vector<IU*> producedAttributes() {
+    set<IU*> producedAttributes() {
         return attributes;
     }
 };
@@ -101,10 +138,10 @@ public:
 class Print : public Operator {
 protected:
     Operator* input;
-    vector<IU*> attributes;
+    set<IU*> attributes;
 
 public:
-    Print(Operator* input, vector<IU*> attributes, ostream* os) : input(input), attributes(attributes) {
+    Print(Operator* input, set<IU*> attributes, ostream* os) : input(input), attributes(attributes) {
         input->parent = this;
         this->os = os;
     };
@@ -114,106 +151,179 @@ public:
     }
 
     void consume(Operator* source) {
+        size_t i = 0;
         for (auto attribute : attributes) {
-            *os << "cout << " << attribute->name << " << endl;" << endl;
+            i++;
+
+            *os << "cout << " << attribute->name;
+            if (i != attributes.size()) {
+                *os << " << \" | \";" << endl;
+            } else {
+                *os << " << endl;" << endl;
+            }
         }
     }
 
-    vector<IU*> requiredAttributes() {
+    set<IU*> requiredAttributes() {
         return attributes;
     }
 
-    vector<IU*> producedAttributes() {
-        return vector<IU*>();
+    set<IU*> producedAttributes() {
+        return set<IU*>();
     }
 };
 
 class Join : public Operator {
 protected:
-    Operator* lhs;
-    Operator* rhs;
+    Operator *lhs, *rhs;
+    vector<IU*> lhs_attrs, rhs_attrs;
+    string payload_type() {
+        size_t i = 0;
+        string res;
+        for (auto attribute : lhs->producedAttributes()) {
+            i++;
+            res += attribute->type;
+            if (i != lhs->producedAttributes().size()) {
+                res += ", ";
+            }
+        }
+
+        return res;
+    }
 
 public:
-    Join(Operator* lhs, Operator* rhs, ostream* os) : lhs(lhs), rhs(rhs) {
+    Join(Operator* lhs, Operator* rhs, vector<IU*> lhs_attrs, vector<IU*> rhs_attrs, ostream* os) :
+            lhs(lhs), rhs(rhs), lhs_attrs(lhs_attrs), rhs_attrs(rhs_attrs) {
         this->os = os;
         lhs->parent = this;
         rhs->parent = this;
+        assert(lhs_attrs.size() == rhs_attrs.size());
     }
 
     void produce() {
+        *os << "multimap<int32_t, tuple<" << payload_type() << ">> hash_table;" << endl;
         lhs->produce();
         rhs->produce();
     }
 
     void consume(Operator* source) {
+        // FIXME string join
+        size_t i = 0;
+        string lhs_attrs_str, lhs_hash_attrs_str, rhs_hash_attrs_str;
+        for (auto attribute : lhs->producedAttributes()) {
+            i++;
+            lhs_attrs_str += attribute->name;
+            if (i != lhs->producedAttributes().size()) {
+                lhs_attrs_str += ", ";
+            }
+        }
+        i = 0;
+        for (auto attribute : lhs_attrs) {
+            i++;
+            lhs_hash_attrs_str += attribute->name;
+            if (i != lhs_attrs.size()) {
+                lhs_hash_attrs_str += ", ";
+            }
+        }
+        i = 0;
+        for (auto attribute : rhs_attrs) {
+            i++;
+            rhs_hash_attrs_str += attribute->name;
+            if (i != rhs_attrs.size()) {
+                rhs_hash_attrs_str += ", ";
+            }
+        }
+
         if (source == lhs) {
-            *os << "for (auto data_row : tables.left_table_name) {" << endl;
-                *os << "hash_table.emplace(hash(attrs), tuple<>(attrs));" << endl;
-            *os << "}";
-//            print materialize tuple in hash table;
+            *os << "hash_table.emplace(hashKey(" << lhs_hash_attrs_str <<
+                    "), tuple<" << payload_type() << ">(" << lhs_attrs_str << "));" << endl;
         } else {
-//            print for each match in hashtable[" +a.joinattr+\]";
-            *os << "auto range = hash_table.equal_range(hash(attrs));" << endl;
+            *os << "auto range = hash_table.equal_range(hashKey(" << rhs_hash_attrs_str << "));" << endl;
             *os << "for (auto iter = range.first; iter != range.second; iter++) {" << endl;
-            parent->consume(this);
+                for (auto attribute : lhs->producedAttributes()) {
+                    *os << attribute->type << " " << attribute->name << ";" << endl;
+                }
+                *os << "tie(" << lhs_attrs_str << ") = iter->second;" << endl;
+
+                parent->consume(this);
             *os << "}" << endl;
         }
     }
 
-    vector<IU *> requiredAttributes() {
-        return vector<IU *>();
+    set<IU *> requiredAttributes() {
+        auto res = parent->requiredAttributes();
+        for (auto attr : lhs_attrs) {
+            res.insert(attr);
+        }
+        for (auto attr : rhs_attrs) {
+            res.insert(attr);
+        }
+
+        return res;
     }
 
-    vector<IU *> producedAttributes() {
+    set<IU *> producedAttributes() {
         auto res = lhs->producedAttributes();
-        res.insert(res.end(), rhs->producedAttributes().begin(), rhs->producedAttributes().end());
+        for (auto attr : rhs->producedAttributes()) {
+            res.insert(attr);
+        }
 
         return res;
     }
 };
 
 Operator* Operator::from_query(Query& query, ostream* os) {
-    tuple<string, string> base_table = query.tables[0];
-    string base_table_name, base_table_alias;
-    tie(base_table_name, base_table_alias) = base_table;
-    query.tables.erase(query.tables.begin());
+    vector<tuple<string, Operator*>> tables;
+    set<IU*> attrs;
 
-    vector<IU*> print_attrs;
-    for (string column : query.select_columns) {
-        print_attrs.push_back(new IU(column, "auto"));
-    }
-    Operator* op = new TableScan(base_table_name, print_attrs, os);
+    for (const tuple<string, string>& table : query.tables) {
+        string table_alias = get<1>(table);
+        Operator* table_op = new TableScan(table, query.attr_names(), os);
+        for (auto attr : table_op->producedAttributes()) {
+            attrs.insert(attr);
+        }
 
-    for (tuple<string, string> table : query.tables) {
-        Operator* op = new TableScan(base_table_name, print_attrs, os);
+        for (tuple<string, string> selection : query.selections) {
+            if (get<0>(selection).substr(0, table_alias.size() + 1) == table_alias + ".") {
+                int32_t rhs_int;
+                stringstream strstream;
+                strstream << get<1>(selection);
+                strstream >> rhs_int;
 
-    }
-
-    for (tuple<string, string> selection : query.selections) {
-        string lhs, rhs;
-        int32_t rhs_int;
-        tie(lhs, rhs) = selection;
-        stringstream strstream;
-        strstream << rhs;
-        strstream >> rhs_int;
-
-        string var_name = string(lhs);
-        replace(var_name.begin(), var_name.end(), '.', '_');
-
-        IU* lhs_attr = nullptr;
-        for (IU* attr : print_attrs) {
-            if (attr->name == var_name)  {
-                lhs_attr = attr;
-                break;
+                table_op = new Selection(table_op, IU::find(attrs, get<0>(selection)), rhs_int, os);
             }
         }
-        if (lhs_attr == nullptr) {
-            lhs_attr = new IU(lhs, "auto");
+
+        tables.push_back(tuple<string, Operator*>(table_alias, table_op));
+    }
+
+    Operator* op = get<1>(tables[0]);
+
+    for (size_t i = 1; i < tables.size(); i++) {
+        vector<IU*> lhs_attrs, rhs_attrs;
+        for (tuple<string, string> join : query.join_columns) {
+            string attr1, attr2;
+            tie(attr1, attr2) = join;
+
+            string lhs_alias = get<0>(tables[i - 1]);
+            string rhs_alias = get<0>(tables[i]);
+            // FIXME
+            if (attr1.substr(0, lhs_alias.size() + 1) == lhs_alias + '.' &&
+                    attr2.substr(0, rhs_alias.size() + 1) == rhs_alias + '.') {
+                lhs_attrs.push_back(IU::find(attrs, attr1));
+                rhs_attrs.push_back(IU::find(attrs, attr2));
+            }
+            if (attr1.substr(0, rhs_alias.size() + 1) == rhs_alias + '.' &&
+                    attr2.substr(0, lhs_alias.size() + 1) == lhs_alias + '.') {
+                rhs_attrs.push_back(IU::find(attrs, attr1));
+                lhs_attrs.push_back(IU::find(attrs, attr2));
+            }
         }
 
-        op = new Selection(op, lhs_attr, rhs_int, os);
+        op = new Join(op, get<1>(tables[i]), lhs_attrs, rhs_attrs, os);
     }
-    op = new Print(op, print_attrs, os);
+
+    op = new Print(op, IU::find_multiple(attrs, query.select_columns), os);
 
     return op;
 }
