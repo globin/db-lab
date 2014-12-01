@@ -264,7 +264,9 @@ public:
     set<IU *> producedAttributes() {
         auto res = lhs->producedAttributes();
         for (auto attr : rhs->producedAttributes()) {
-            res.insert(attr);
+            if (find(res.begin(), res.end(), attr) != res.end()) {
+                res.insert(attr);
+            }
         }
 
         return res;
