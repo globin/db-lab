@@ -7,6 +7,16 @@
 
 using namespace std;
 
+string join(vector<string> strs) {
+    string res;
+    for (string str : strs) {
+        res += str;
+        if (str != strs.back()) {
+            res += ", ";
+        }
+    }
+    return res;
+}
 
 struct IU {
     string name;
@@ -38,6 +48,17 @@ struct IU {
 
         for (auto iu_str : iu_strs) {
             res.insert(IU::find(ius, iu_str));
+        }
+
+        return res;
+    }
+
+    template <typename T>
+    static vector<string> names(T attrs) {
+        vector<string> res;
+
+        for (IU* attr : attrs) {
+            res.push_back(attr->name);
         }
 
         return res;
@@ -207,32 +228,10 @@ public:
     }
 
     void consume(Operator* source) {
-        // FIXME string join
         size_t i = 0;
-        string lhs_attrs_str, lhs_hash_attrs_str, rhs_hash_attrs_str;
-        for (auto attribute : lhs->producedAttributes()) {
-            i++;
-            lhs_attrs_str += attribute->name;
-            if (i != lhs->producedAttributes().size()) {
-                lhs_attrs_str += ", ";
-            }
-        }
-        i = 0;
-        for (auto attribute : lhs_attrs) {
-            i++;
-            lhs_hash_attrs_str += attribute->name;
-            if (i != lhs_attrs.size()) {
-                lhs_hash_attrs_str += ", ";
-            }
-        }
-        i = 0;
-        for (auto attribute : rhs_attrs) {
-            i++;
-            rhs_hash_attrs_str += attribute->name;
-            if (i != rhs_attrs.size()) {
-                rhs_hash_attrs_str += ", ";
-            }
-        }
+        string lhs_attrs_str = join(IU::names(lhs->producedAttributes()));
+        string lhs_hash_attrs_str = join(IU::names(lhs_attrs));
+        string rhs_hash_attrs_str = join(IU::names(rhs_attrs));
 
         if (source == lhs) {
             *os << "hash_table.emplace(hashKey(" << lhs_hash_attrs_str <<
