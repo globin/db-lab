@@ -24,14 +24,12 @@ struct Query {
         vector<string> attrs = select_columns;
         for (auto sel : selections) {
             attrs.push_back(get<0>(sel));
-            attrs.push_back(get<1>(sel));
         }
         for (auto col : join_columns) {
             attrs.push_back(get<0>(col));
             attrs.push_back(get<1>(col));
         }
 
-        unique(attrs.begin(), attrs.end());
         return attrs;
     }
 };

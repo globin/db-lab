@@ -154,7 +154,17 @@ string Schema::toCppHeader() const {
     for (const Schema::Relation &rel : relations) {
         out << "    " << rel.name << "Table " << rel.name << "Table;" << endl;
     }
-    out << "};" << endl;
+    out << "};" << endl << endl;
+
+    out << "static map<string, string> TYPES;" << endl;
+
+    out << "void fill_types() {" << endl;
+    for (const Schema::Relation &rel : relations) {
+        for (const Schema::Relation::Attribute &attr : rel.attributes) {
+            out << "TYPES.emplace(\"" << rel.name << "::" << attr.name << "\", \"" << type(attr) << "\");" << endl;
+        }
+    }
+    out << "}" << endl;
 
     return out.str();
 }

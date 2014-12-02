@@ -5,7 +5,7 @@
 #include <readline/history.h>
 #include <dlfcn.h>
 
-#include "oltp.hpp"
+#include "tables_gen.hpp"
 #include "parser.hpp"
 #include "operator.hpp"
 
@@ -35,15 +35,15 @@ void read_file_to_table(const string &file_name, Table<T, Index> &table) {
     }
 }
 
-void read_tables(const string &base_path) {
-    read_file_to_table<warehouse>(base_path + "/tpcc_warehouse.tbl", TABLES.warehouseTable);
-    read_file_to_table<customer>(base_path + "/tpcc_customer.tbl", TABLES.customerTable);
-    read_file_to_table<district>(base_path + "/tpcc_district.tbl", TABLES.districtTable);
-    read_file_to_table<item>(base_path + "/tpcc_item.tbl", TABLES.itemTable);
-    read_file_to_table<neworder>(base_path + "/tpcc_neworder.tbl", TABLES.neworderTable);
-    read_file_to_table<order>(base_path + "/tpcc_order.tbl", TABLES.orderTable);
-    read_file_to_table<orderline>(base_path + "/tpcc_orderline.tbl", TABLES.orderlineTable);
-    read_file_to_table<stock>(base_path + "/tpcc_stock.tbl", TABLES.stockTable);
+void read_tables(const string &base_path, Tables &tables) {
+    read_file_to_table<warehouse>(base_path + "/tpcc_warehouse.tbl", tables.warehouseTable);
+    read_file_to_table<customer>(base_path + "/tpcc_customer.tbl", tables.customerTable);
+    read_file_to_table<district>(base_path + "/tpcc_district.tbl", tables.districtTable);
+    read_file_to_table<item>(base_path + "/tpcc_item.tbl", tables.itemTable);
+    read_file_to_table<neworder>(base_path + "/tpcc_neworder.tbl", tables.neworderTable);
+    read_file_to_table<order>(base_path + "/tpcc_order.tbl", tables.orderTable);
+    read_file_to_table<orderline>(base_path + "/tpcc_orderline.tbl", tables.orderlineTable);
+    read_file_to_table<stock>(base_path + "/tpcc_stock.tbl", tables.stockTable);
 }
 
 static char* line_read = (char *)NULL;
@@ -56,7 +56,12 @@ char* rl_gets() {
 
     line_read = readline("SQL> ");
 
-    if (line_read && *line_read) {
+    if (line_read == NULL || strcmp(line_read, "exit") == 0) {
+        cout << "exit" << endl;
+        rl_callback_handler_remove();
+
+        exit(0);
+    } else if (*line_read) {
         add_history(line_read);
     }
 
@@ -74,9 +79,9 @@ void generate_footer(ostream& os) {
     os << "}" << endl;
 }
 void compile_query() {
-    system("clang++ -fPIC -shared /tmp/query-gen.cpp -std=c++1y -Wall -Wno-unknown-pragmas -stdlib=libc++ -o /tmp/query-gen.so");
+    system("clang++ -fPIC -shared /tmp/query-gen.cpp -std=c++1y -O3 -Wall -Wno-unknown-pragmas -Wno-unused-variable -stdlib=libc++ -o /tmp/query-gen.so");
 }
-void run_query() {
+void run_query(Tables& tables) {
    void* handle = dlopen("/tmp/query-gen.so", RTLD_NOW);
    if (!handle) {
       cerr << "error: " << dlerror() << endl;
@@ -89,7 +94,7 @@ void run_query() {
       exit(1);
    }
 
-   query(TABLES);
+   query(tables);
 
    if (dlclose(handle)) {
       cerr << "error: " << dlerror() << endl;
@@ -98,25 +103,35 @@ void run_query() {
 }
 
 
-void repl() {
+void repl(Tables &tables) {
     char* sql_line = rl_gets();
     auto filename = "/tmp/query-gen.cpp";
     ofstream os = ofstream(filename);
 
     if (sql_line) {
-        try {
-//            auto parser = Parser("select w.w_id from district d, warehouse w where d.d_id=1 and d.d_w_id = w.w_id;");
-            auto parser = Parser(sql_line);
-            auto query = parser.parse();
+        if (strcmp(sql_line, "\\output") == 0) {
+            OUTPUT = !OUTPUT;
+            cout << "output: " << (OUTPUT ? "on" : "off") << endl;
+        } else {
+            try {
+                auto parser = Parser(sql_line);
+                auto query = parser.parse();
 
-            generate_header(os);
-            auto ra_tree = Operator::from_query(*query, &os);
-            ra_tree->produce();
-            generate_footer(os);
-            compile_query();
-            run_query();
-        } catch (ParserError e) {
-            cerr << "Parse Error: " << e.what() << endl;
+                generate_header(os);
+                auto ra_tree = Operator::from_query(*query, &os);
+                ra_tree->produce();
+                generate_footer(os);
+
+                auto start = high_resolution_clock::now();
+                compile_query();
+                cout << "compiling query: " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() * 1000 << "ms" << endl;
+
+                start = high_resolution_clock::now();
+                run_query(tables);
+                cout << "running query: " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() * 1000 << "ms" << endl;
+            } catch (ParserError e) {
+                cerr << "Parse Error: " << e.what() << endl;
+            }
         }
     }
 }
@@ -127,12 +142,16 @@ int main(int argc, char const *argv[]) {
         return 1;
     }
 
+    Tables tables;
+
     auto start = high_resolution_clock::now();
-    read_tables(argv[1]);
-    cout << "read tables " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() << "s" << endl;
+    read_tables(argv[1], tables);
+    cout << "read tables: " << duration_cast<duration<double>>(high_resolution_clock::now() - start).count() << "s" << endl;
+
+    fill_types();
 
     while (true) {
-        repl();
+        repl(tables);
     }
 }
 

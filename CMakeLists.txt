@@ -25,8 +25,6 @@ add_executable(db-lab-codegen ${CODEGEN_SOURCE_FILES})
 
 set(SOURCE_FILES
     src/main.cpp
-    src/oltp.hpp
-    src/oltp.cpp
     src/parser.hpp
     src/parser.cpp
     src/operator.hpp
