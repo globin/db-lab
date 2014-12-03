@@ -73,9 +73,10 @@ void Parser::nextToken(const string &token, Query &query) {
         cerr << static_cast<int>(state) << ": " << token << " " << isIdentifier(token) << std::endl;
     if (token.empty())
         return;
-//    string tok;
-//    transform(token.begin(), token.end(), back_inserter(tok), tolower);
-    string tok = token; // FIXME
+    string tok;
+    for (char c : token) {
+        tok += tolower(c);
+    }
     switch (state) {
         case State::Init:
             if (tok == keyword::Select)
