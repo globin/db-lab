@@ -114,7 +114,7 @@ void Parser::nextToken(const string &token, Query &query) {
         case State::TableName:
             if (isIdentifier(tok)) {
                 state = State::TableAlias;
-                query.tables.push_back(tuple<string, string>(temp, token));
+                query.tables.push_back(make_tuple(temp, token));
             } else {
                 throw ParserError("Expected table alias, found '" + token + "'");
             }
@@ -147,9 +147,9 @@ void Parser::nextToken(const string &token, Query &query) {
             break;
         case State::PredicateEquals:
             if (isColumnIdentifier(tok)) {
-                query.join_columns.push_back(tuple<string, string>(temp, token));
+                query.join_columns.push_back(make_tuple(temp, token));
             } else if (isInt(tok)) {
-                query.selections.push_back(tuple<string, string>(temp, token));
+                query.selections.push_back(make_tuple(temp, token));
             } else {
                 throw ParserError("Expected column name or integer, found '" + token + "'");
             }

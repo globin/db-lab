@@ -2,7 +2,10 @@
 
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <experimental/optional>
+
+#include "hash_tuple.hpp"
 
 template<typename T>
 using optional = std::experimental::optional<T>;
@@ -42,9 +45,9 @@ public:
         return rows;
     }
 
-    void insert(Data data) {
-        rows.push_back(data);
-        index[data.index()] = rows.size() - 1;
+    void insert(unique_ptr<Data> data) {
+        rows.push_back(*data);
+        index[data->index()] = rows.size() - 1;
     }
 
     void remove(Index index_element) {

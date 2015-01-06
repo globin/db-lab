@@ -68,8 +68,8 @@ void generate_constructor(stringstream &cpp_gen_tables, const Schema::Relation &
 }
 
 void generate_from_row(stringstream &cpp_gen_tables, const Schema::Relation &relation) {
-    cpp_gen_tables << "    static " << relation.name << " from_row(vector<string> row) {" << endl;
-    cpp_gen_tables << "        return " << relation.name << "(" << endl;
+    cpp_gen_tables << "    static unique_ptr<" << relation.name << "> from_row(const vector<string> &row) {" << endl;
+    cpp_gen_tables << "        unique_ptr<" << relation.name << "> data(new " << relation.name << "(" << endl;
     for (size_t i = 0; i < relation.attributes.size(); i++) {
         cpp_gen_tables << "            " << type(relation.attributes[i]) <<
                 "::castString(row[" << i << "].c_str(), row[" << i << "].length())";
@@ -78,7 +78,8 @@ void generate_from_row(stringstream &cpp_gen_tables, const Schema::Relation &rel
         }
         cpp_gen_tables << endl;
     }
-    cpp_gen_tables << "        );" << endl;
+    cpp_gen_tables << "        ));" << endl;
+    cpp_gen_tables << "        return data;" << endl;
     cpp_gen_tables << "    }" << endl;
 }
 

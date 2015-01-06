@@ -22,13 +22,12 @@ void read_file_to_table(const string &file_name, Table<T, Index> &table) {
             stringstream ss(line);
             string cell;
             while (getline(ss, cell, '|')) {
-                column_data.push_back(cell);
+                column_data.push_back(move(cell));
             }
 
-            T row = T::from_row(column_data);
-
-            table.insert(row);
+            table.insert(T::from_row(column_data));
         }
+
         warehouse_file.close();
     } else {
         cerr << "Warehouse file doesn't exist!" << endl;

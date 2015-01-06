@@ -206,13 +206,13 @@ protected:
     vector<IU*> lhs_attrs, rhs_attrs;
     string name;
 
-    string payload_type() {
+    string payload_type(vector<IU*> attrs) {
         size_t i = 0;
         string res;
-        for (auto attribute : lhs->producedAttributes()) {
+        for (auto attribute : attrs) {
             i++;
             res += attribute->type;
-            if (i != lhs->producedAttributes().size()) {
+            if (i != attrs.size()) {
                 res += ", ";
             }
         }
@@ -235,7 +235,9 @@ public:
     }
 
     void produce() {
-        *os << "multimap<int32_t, tuple<" << payload_type() << ">> " << name << ";" << endl;
+        *os << "unordered_multimap<tuple<" << payload_type(lhs_attrs) << ">, tuple<"
+                << payload_type(lhs->producedAttributes()) << ">, hash_tuple::hash<tuple<"
+                << payload_type(lhs_attrs) << ">>> " << name << ";" << endl;
 
         lhs->produce();
         rhs->produce();
@@ -247,10 +249,10 @@ public:
         string rhs_hash_attrs_str = join(IU::names(rhs_attrs));
 
         if (source == lhs) {
-            *os << name << ".emplace(hashKey(" << lhs_hash_attrs_str <<
-                    "), tuple<" << payload_type() << ">(" << lhs_attrs_str << "));" << endl;
+            *os << name << ".emplace(make_tuple(" << lhs_hash_attrs_str
+                << "), make_tuple(" << lhs_attrs_str << "));" << endl;
         } else {
-            *os << "auto range = " << name << ".equal_range(hashKey(" << rhs_hash_attrs_str << "));" << endl;
+            *os << "auto range = " << name << ".equal_range(make_tuple(" << rhs_hash_attrs_str << "));" << endl;
             *os << "for (auto iter = range.first; iter != range.second; iter++) {" << endl;
                 for (auto attribute : lhs->producedAttributes()) {
                     *os << attribute->type << " " << attribute->name << ";" << endl;
@@ -312,7 +314,7 @@ Operator* Operator::from_query(Query& query, ostream* os) {
             }
         }
 
-        tables.push_back(tuple<string, Operator*>(table_alias, table_op));
+        tables.push_back(make_tuple(table_alias, table_op));
     }
 
     Operator* op = get<1>(tables[0]);
