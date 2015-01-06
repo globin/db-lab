@@ -4,21 +4,15 @@ namespace hash_tuple {
     {
         size_t operator()(TT const& tt) const
         {
-            return hash_tuple::hash<TT>()(tt);
+            return std::hash<TT>()(tt);
         }
     };
 
     namespace {
-
-        // Code from boost
-        // Reciprocal of the golden ratio helps spread entropy
-        //     and handles duplicates.
-        // See Mike Seymour in magic-numbers-in-boosthash-combine:
-        //     http://stackoverflow.com/questions/4948780
-
-        template<class T>
-        inline void hash_combine(std::size_t &seed, T const &v) {
-            seed ^= hash_tuple::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        template <class T>
+        inline void hash_combine(std::size_t& seed, T const& v)
+        {
+            seed ^= hash_tuple::hash<T>()(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
         }
 
         // Recursive template code derived from Matthieu M.
@@ -37,4 +31,20 @@ namespace hash_tuple {
             }
         };
     }
+
+    template<typename ... TT>
+    struct hash<std::tuple<TT...>> {
+        size_t operator()(std::tuple<TT...> const &tt) const {
+            size_t seed = 0;
+            HashValueImpl<std::tuple<TT...> >::apply(seed, tt);
+            return seed;
+        }
+    };
+
+    template<>
+    struct hash<Integer> {
+        size_t operator()(Integer const &i) const {
+            return i.hash();
+        }
+    };
 }

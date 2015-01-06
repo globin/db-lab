@@ -140,7 +140,7 @@ public:
     }
 
     void produce() {
-        *os << "for (" << table_name << " data_row : tables." << table_name << "Table.get_rows()) {" << endl;
+        *os << "for (const " << table_name << " &data_row : tables." << table_name << "Table.get_rows()) {" << endl;
 
         for (auto attribute : requiredAttributes()) {
             if (find(attributes.begin(), attributes.end(), attribute) != attributes.end()) {
